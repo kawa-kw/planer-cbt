@@ -4,6 +4,8 @@ import {
   getFirestore, collection, addDoc, query, where,
   onSnapshot, deleteDoc, doc, updateDoc
 } from "firebase/firestore";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAWvWHUoQhdeL7PicXgMwOTRfSWVrVm9I",
@@ -17,6 +19,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+const removePolishAccents = (str) => {
+  if (typeof str !== 'string') return str;
+  const map = {
+    'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+    'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
+  };
+  return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, (match) => map[match]);
+};
 
 function MainPage() {
   const [activities, setActivities] = useState([]);
@@ -67,13 +78,77 @@ function MainPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const title = removePolishAccents("Dzienny plan aktywnosci - nurt CBT");
+    doc.setFontSize(16);
+    doc.text(title, 14, 15);
+    doc.setFontSize(11);
+    doc.text(`Data: ${selectedDate}`, 14, 22);
+
+    const tableColumn = [
+      "Godzina",
+      "Aktywnosc",
+      "Kontekst",
+      "Przyj. (1-10)",
+      "Skut. (1-10)",
+      "Emocje",
+      "Sila",
+      "Przyj.?",
+      "Uwagi"
+    ];
+
+    const tableRows = activities.map(act => [
+      act.hour,
+      removePolishAccents(act.activity),
+      removePolishAccents(act.context),
+      act.pleasure,
+      act.mastery,
+      removePolishAccents(act.emotion),
+      act.emotionIntensity,
+      act.isPleasant,
+      removePolishAccents(act.notes)
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      styles: {
+        fontSize: 9,
+        font: "helvetica",
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [79, 70, 229],
+        textColor: [255, 255, 255]
+      },
+      columnStyles: {
+        8: { cellWidth: 60 }
+      }
+    });
+
+    doc.save(`plan-cbt-${selectedDate}.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-base-200 p-4 md:p-8">
       <div className="max-w-[1800px] mx-auto">
-
-        <header className="mb-8 text-center">
+        <header className="mb-8 text-center relative">
           <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
           <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
+          <button
+            onClick={exportToPDF}
+            className="btn btn-outline btn-accent btn-sm ml-4 absolute -bottom-[82px] right-6 z-10 md:bottom-auto md:top-0 md:right-0"
+            disabled={activities.length === 0}
+          >
+            Pobierz PDF
+          </button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
