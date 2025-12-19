@@ -154,11 +154,11 @@ function MainPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           <div className="lg:col-span-1 space-y-6">
-            <div className="card bg-base-100 shadow-xl p-6">
+            <div className="relative card bg-base-100 shadow-xl p-6">
               <h2 className="card-title mb-4">Wybierz datę</h2>
               <input
                 type="date"
-                className="input input-bordered w-full"
+                className="block input input-bordered w-full max-w-full"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
