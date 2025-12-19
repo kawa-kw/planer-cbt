@@ -29,6 +29,12 @@ const removePolishAccents = (str) => {
   return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, (match) => map[match]);
 };
 
+const AngleIcon = ({ className }) => (
+  <svg className={`h-5 w-5 inline-block ml-2 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
 function MainPage() {
   const [activities, setActivities] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -37,6 +43,7 @@ function MainPage() {
     hour: '', activity: '', context: '', pleasure: 5, mastery: 5,
     emotion: '', emotionIntensity: 5, isPleasant: 'Nie', notes: ''
   });
+  const [isFormExpanded, setIsFormExpanded] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "activities"), where("date", "==", selectedDate));
@@ -150,15 +157,21 @@ function MainPage() {
             Pobierz PDF
           </button>
         </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          <div className="lg:col-span-1 space-y-6">
+        <div className="flex gap-4 items-center mb-4">
+          <button
+            className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center"
+            onClick={() => setIsFormExpanded(!isFormExpanded)}><AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
+            {isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
+          </button>
+          <span className="font-bold text-xs bg-info py-1 px-3 rounded-full text-info-content">{selectedDate}</span>
+        </div>
+        <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className={`lg:col-span-1 space-y-6 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
             <div className="relative card bg-base-100 shadow-xl p-6">
               <h2 className="card-title mb-4">Wybierz datę</h2>
               <input
                 type="date"
-                className="block input input-bordered w-full max-w-full"
+                className="input input-bordered"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
@@ -224,7 +237,7 @@ function MainPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className={`${isFormExpanded ? 'lg:col-span-2' : 'lg:col-span-3'} transition-all duration-300 ease-in-out relative`}>
             <div className="card bg-base-100 shadow-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="table table-zebra w-full">
