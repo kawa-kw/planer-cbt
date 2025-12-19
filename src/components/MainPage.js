@@ -151,7 +151,7 @@ function MainPage() {
           <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
           <button
             onClick={exportToPDF}
-            className="btn btn-outline btn-accent btn-sm ml-4 absolute -bottom-[82px] right-6 z-10 md:bottom-auto md:top-0 md:right-0"
+            className="btn btn-outline btn-accent btn-sm ml-4 absolute -bottom-[58px] right-2 z-10"
             disabled={activities.length === 0}
           >
             Pobierz PDF
@@ -260,12 +260,14 @@ function MainPage() {
                           <div className="text-xs opacity-50">{act.context}</div>
                         </td>
                         <td className="text-center">
-                          <div className="badge badge-primary badge-outline mr-1">{act.pleasure}</div>
-                          <div className="badge badge-secondary badge-outline">{act.mastery}</div>
+                          <div className="tooltip badge badge-primary badge-outline mr-2" data-tip="Przyjemność">{act.pleasure}</div>
+                          <div className="tooltip badge badge-secondary badge-outline" data-tip="Skuteczność/Mastery">{act.mastery}</div>
                         </td>
                         <td>
-                          <div>{act.emotion}</div>
-                          <div className="text-xs italic">Siła: {act.emotionIntensity}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="tooltip badge badge-accent badge-outline" data-tip="Nasilenie emocji">{act.emotionIntensity}</div>
+                            <p className="text-xs">{act.emotion}</p>
+                          </div>
                         </td>
                         <td className="max-w-xs truncate text-xs italic opacity-70">{act.notes}</td>
                         <td className="space-x-2">
