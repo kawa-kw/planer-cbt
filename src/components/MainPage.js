@@ -197,7 +197,7 @@ function MainPage() {
     doc.save(`plan-cbt-${selectedDate}.pdf`);
   };
 
-  const shareLink = `${window.location.origin}?viewAs=${user?.uid}`;
+  const shareLink = `${window.location.origin}${window.location.pathname}?viewAs=${user?.uid}`;
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
