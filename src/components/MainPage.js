@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -46,7 +46,7 @@ function MainPage() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     hour: '', activity: '', context: '', pleasure: 5, mastery: 5,
-    emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: ''
+    emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '', userId: ''
   });
   const [isFormExpanded, setIsFormExpanded] = useState(false);
   const auth = getAuth(app);
@@ -129,8 +129,8 @@ function MainPage() {
       } else {
         await addDoc(collection(db, "activities"), payload);
       }
-      setFormData({ hour: '', activity: '', context: '', pleasure: 5, mastery: 5, emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '' });
-    } catch (err) { console.error(err); }
+      setFormData({ hour: '', activity: '', context: '', pleasure: 5, mastery: 5, emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '', userId: '' });
+    } catch (err) { alert(err); }
   };
 
   const startEdit = (act) => {
@@ -314,7 +314,7 @@ function MainPage() {
                   <option value="Tak">Czy przyjemna? Tak</option>
                 </select>
 
-                <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full" value={formData.notes} onChange={handleChange} />
+                <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug" value={formData.notes} onChange={handleChange} />
 
                 <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>
                   {editingId ? "Zapisz zmiany" : "Dodaj wpis"}
@@ -338,6 +338,7 @@ function MainPage() {
                       <th>Aktywność / Kontekst</th>
                       <th className="text-center">P / M </th>
                       <th>Emocje</th>
+                      <th>Przyjemna?</th>
                       <th>Uwagi</th>
                       <th>Akcje</th>
                     </tr>
@@ -354,11 +355,11 @@ function MainPage() {
                           <div className="tooltip badge badge-primary badge-outline mr-2" data-tip="Przyjemność">{act.pleasure}</div>
                           <div className="tooltip badge badge-secondary badge-outline" data-tip="Skuteczność/Mastery">{act.mastery}</div>
                         </td>
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <div className="tooltip badge badge-accent badge-outline" data-tip="Nasilenie emocji">{act.emotionIntensity}</div>
-                            <p className="text-xs">{act.emotion}</p>
-                          </div>
+                        <td className="max-w-xs truncate text-xs">
+                          <span className="tooltip badge badge-accent badge-outline mr-2" data-tip="Nasilenie emocji">{act.emotionIntensity}</span> {act.emotion}
+                        </td>
+                        <td> 
+                          <span className={`badge badge-outline ${act.isPleasant === 'Tak' ? 'badge-success' : 'badge-error'}`}>{act.isPleasant}</span>
                         </td>
                         <td className="max-w-xs truncate text-xs italic opacity-70">{act.notes}</td>
                         <td className="space-x-2">
