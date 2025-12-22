@@ -231,11 +231,11 @@ function MainPage() {
   return (
     <div className="min-h-screen bg-base-200 p-4 md:p-8">
       <div className="max-w-[1800px] mx-auto">
-        <header className="mb-8 text-center relative">
+        <header className="mb-8 lg:mb-0 text-center relative">
           <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
           <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
-          {isReadOnly && <p className="badge badge-warning mt-4">read only</p>}
-          <div className="relative flex gap-2 flex-wrap justify-end mt-4 -mb-6 lg:top-10">
+          {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
+          <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
             <button
               onClick={exportToPDF}
               className="btn btn-outline btn-accent btn-sm"
@@ -334,7 +334,7 @@ function MainPage() {
                 <table className="table table-zebra w-full">
                   <thead className="bg-base-300">
                     <tr>
-                      <th>Godzina</th>
+                      <th className="!relative">Godzina</th>
                       <th>Aktywność / Kontekst</th>
                       <th className="text-center">P / M </th>
                       <th>Emocje</th>
