@@ -236,6 +236,9 @@ function MainPage() {
           <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
           {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
           <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
+            {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>
+              Share Link
+            </button>}
             <button
               onClick={exportToPDF}
               className="btn btn-outline btn-accent btn-sm"
@@ -243,9 +246,6 @@ function MainPage() {
             >
               Pobierz PDF z {selectedDate}
             </button>
-            {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>
-              Share Link
-            </button>}
           </div>
         </header>
         <div className="flex gap-4 items-center mb-4">
@@ -335,11 +335,11 @@ function MainPage() {
                   <thead className="bg-base-300">
                     <tr>
                       <th className="!relative">Godzina</th>
-                      <th>Aktywność / Kontekst</th>
+                      <th className="min-w-[300px] max-w-[400px]">Aktywność / Kontekst</th>
                       <th className="text-center">P / M </th>
                       <th>Emocje</th>
                       <th>Przyjemna?</th>
-                      <th>Uwagi</th>
+                      <th className="min-w-[300px] max-w-[400px]">Uwagi</th>
                       <th>Akcje</th>
                     </tr>
                   </thead>
@@ -347,8 +347,8 @@ function MainPage() {
                     {activities.length > 0 ? activities.map(act => (
                       <tr key={act.id} className="hover">
                         <td className="font-bold">{act.hour}</td>
-                        <td>
-                          <div className="font-bold">{act.activity}</div>
+                        <td className="min-w-[300px] max-w-[400px]">
+                          <div className="font-bold whitespace-normal">{act.activity}</div>
                           <div className="text-xs opacity-50">{act.context}</div>
                         </td>
                         <td className="text-center">
@@ -361,7 +361,7 @@ function MainPage() {
                         <td> 
                           <span className={`badge badge-outline ${act.isPleasant === 'Tak' ? 'badge-success' : 'badge-error'}`}>{act.isPleasant}</span>
                         </td>
-                        <td className="max-w-xs truncate text-xs italic opacity-70">{act.notes}</td>
+                        <td className="text-xs italic opacity-70 whitespace-normal min-w-[300px] max-w-[400px]">{act.notes}</td>
                         <td className="space-x-2">
                           <button className="btn btn-ghost btn-xs text-info" disabled={isReadOnly} onClick={() => startEdit(act)}>Edytuj</button>
                           <button className="btn btn-ghost btn-xs text-error" disabled={isReadOnly} onClick={() => deleteDoc(doc(db, "activities", act.id))}>Usuń</button>
