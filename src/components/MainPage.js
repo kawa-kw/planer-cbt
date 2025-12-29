@@ -252,7 +252,7 @@ function MainPage() {
           <button
             className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center relative z-10"
             onClick={() => setIsFormExpanded(!isFormExpanded)}><AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
-            {isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
+            {isReadOnly ? 'Wybierz datę' : isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
             <span className="badge badge-info font-bold">{selectedDate}</span>
           </button>
         </div>
