@@ -194,7 +194,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           Eksportuj Tydzień (PDF)
         </button>
       </div>
-      <MoodChart plannedActivities={weeklyData?.plannedActivities} />
+      <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
 
       {/* Tabela Nastroju i Energii - Początek tygodnia */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

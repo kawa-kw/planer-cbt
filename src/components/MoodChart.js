@@ -4,7 +4,7 @@ import {
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-const MoodChart = ({ plannedActivities }) => {
+const MoodChart = ({ className, plannedActivities }) => {
   const days = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
   const calculateAverage = (moodTracker, field) => {
@@ -30,9 +30,9 @@ const MoodChart = ({ plannedActivities }) => {
   });
 
   return (
-    <div className="card rounded-t-none bg-base-100 shadow-xl p-6 mb-8 border-t-4 border-primary">
+    <div className={`card bg-base-100 shadow-xl p-6 border-t-4 border-primary rounded-t-none mb-8 ${className || ''}`}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="card-title text-sm uppercase opacity-70">
+        <h2 className="card-title text-base font-bold">
           Tygodniowy Trend Nastroju i Energii (Średnia dobowa)
         </h2>
         <div className="badge badge-ghost text-[10px]">Skala 0-10</div>
@@ -73,7 +73,7 @@ const MoodChart = ({ plannedActivities }) => {
         </ResponsiveContainer>
       </div>
       <p className="text-[10px] opacity-50 mt-4 italic text-center">
-        Wykres prezentuje uśredniony poziom z trzech porów dnia (Rano, Południe, Wieczór) zgodnie z tabelą monitoringu.
+        Wykres prezentuje uśredniony poziom z trzech pór dnia (Rano, Południe, Wieczór) zgodnie z tabelą monitoringu.
       </p>
     </div>
   );

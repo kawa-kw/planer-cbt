@@ -13,7 +13,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
 
   return (
     <div className="card rounded-t-none bg-base-100 shadow-xl p-6 border-t-4 border-primary mt-8">
-      <h2 className="card-title text-primary mb-6 uppercase tracking-widest">
+      <h2 className="card-title font-bold mb-6">
         Podsumowanie Tygodnia (CBT)
       </h2>
 
@@ -60,7 +60,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         </div>
 
         {/* Końcowe wskaźniki nastroju i energii */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-base-300">
           <div className="form-control">
             <label className="label">
               <span className="label-text font-bold">Poziom nastroju na koniec tygodnia: {moodEnd || 5}</span>
