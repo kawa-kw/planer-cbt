@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import WeeklyView from "./WeeklyView";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAWvWHUoQhdeL7PicXgMwOTRfSWVrVm9I",
@@ -55,6 +56,7 @@ function MainPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [targetUid, setTargetUid] = useState(null);
+  const [activeTab, setActiveTab] = useState("daily"); // "daily" lub "weekly"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -242,178 +244,196 @@ function MainPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 p-4 md:p-8">
-      <div className="max-w-[1800px] mx-auto">
-        <header className="mb-8 lg:mb-0 text-center relative">
-          <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
-          <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
-          {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
-          <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
-            {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>
-              Share Link
-            </button>}
+    <>
+      <div className="tabs tab-bordered justify-center py-2">
+        <button className={`tab ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`}
+          onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
+        <button className={`tab ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`}
+          onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
+      </div>
+
+    {activeTab === "daily" ? (
+      <div className="min-h-screen bg-base-200 p-4 md:p-8">
+        <div className="max-w-[1800px] mx-auto">
+          <header className="mb-8 lg:mb-0 text-center relative">
+            <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
+            <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
+            {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
+            <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
+              {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>
+                Share Link
+              </button>}
+              <button
+                onClick={exportToPDF}
+                className="btn btn-outline btn-accent btn-sm"
+                disabled={activities.length === 0}
+              >
+                Pobierz PDF z {selectedDate}
+              </button>
+            </div>
+          </header>
+          <div className="flex gap-4 items-center mb-4">
             <button
-              onClick={exportToPDF}
-              className="btn btn-outline btn-accent btn-sm"
-              disabled={activities.length === 0}
-            >
-              Pobierz PDF z {selectedDate}
+              className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center relative z-10"
+              onClick={() => setIsFormExpanded(!isFormExpanded)}><AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
+              {isReadOnly ? 'Wybierz datę' : isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
+              <span className="badge badge-info font-bold">{selectedDate}</span>
             </button>
           </div>
-        </header>
-        <div className="flex gap-4 items-center mb-4">
-          <button
-            className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center relative z-10"
-            onClick={() => setIsFormExpanded(!isFormExpanded)}><AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
-            {isReadOnly ? 'Wybierz datę' : isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
-            <span className="badge badge-info font-bold">{selectedDate}</span>
-          </button>
-        </div>
-        <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
-          <div className={`lg:col-span-2 space-y-6 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
-            <div className="relative card bg-base-100 shadow-xl p-6">
-              <h2 className="card-title mb-4">Wybierz datę</h2>
-              <input
-                type="date"
-                className="input input-bordered"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </div>
+          <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
+            <div className={`lg:col-span-2 space-y-6 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
+              <div className="relative card bg-base-100 shadow-xl p-6">
+                <h2 className="card-title mb-4">Wybierz datę</h2>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+              </div>
 
-            <div className={`${isReadOnly ? 'hidden lg:block' : ''} card bg-base-100 shadow-xl p-6`}>
-              <h2 className="card-title mb-4">{editingId ? "Edytuj wpis" : "Nowa aktywność"}</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-control">
-                  <label className="label text-xs font-bold uppercase">Godzina</label>
-                  <input name="hour" type="time" className="input input-bordered" value={formData.hour} onChange={handleChange} required />
-                </div>
+              <div className={`${isReadOnly ? 'hidden lg:block' : ''} card bg-base-100 shadow-xl p-6`}>
+                <h2 className="card-title mb-4">{editingId ? "Edytuj wpis" : "Nowa aktywność"}</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="form-control">
+                    <label className="label text-xs font-bold uppercase">Godzina</label>
+                    <input name="hour" type="time" className="input input-bordered" value={formData.hour} onChange={handleChange} required />
+                  </div>
 
-                <div className="form-control">
-                  <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered" value={formData.activity} onChange={handleChange} required />
-                </div>
+                  <div className="form-control">
+                    <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered" value={formData.activity} onChange={handleChange} required />
+                  </div>
 
-                <div className="form-control">
-                  <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered" value={formData.context} onChange={handleChange} />
-                </div>
+                  <div className="form-control">
+                    <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered" value={formData.context} onChange={handleChange} />
+                  </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Przyjemność: {formData.pleasure} </span>
-                  </label>
-                  <input name="pleasure" type="range" min="1" max="10" className="range range-primary range-sm" value={formData.pleasure} onChange={handleChange} />
-                </div>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Przyjemność: {formData.pleasure} </span>
+                    </label>
+                    <input name="pleasure" type="range" min="1" max="10" className="range range-primary range-sm" value={formData.pleasure} onChange={handleChange} />
+                  </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Skuteczność (Mastery): {formData.mastery} </span>
-                  </label>
-                  <input name="mastery" type="range" min="1" max="10" className="range range-secondary range-sm" value={formData.mastery} onChange={handleChange} />
-                </div>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Skuteczność (Mastery): {formData.mastery} </span>
+                    </label>
+                    <input name="mastery" type="range" min="1" max="10" className="range range-secondary range-sm" value={formData.mastery} onChange={handleChange} />
+                  </div>
 
-                <div className="form-control">
-                  <input name="emotion" placeholder="Emocje (np. lęk, radość)" className="input input-bordered" value={formData.emotion} onChange={handleChange} />
-                </div>
+                  <div className="form-control">
+                    <input name="emotion" placeholder="Emocje (np. lęk, radość)" className="input input-bordered" value={formData.emotion} onChange={handleChange} />
+                  </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Nasilenie emocji: {formData.emotionIntensity} </span>
-                  </label>
-                  <input name="emotionIntensity" type="range" min="1" max="10" className="range range-accent range-sm" value={formData.emotionIntensity} onChange={handleChange} />
-                </div>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Nasilenie emocji: {formData.emotionIntensity} </span>
+                    </label>
+                    <input name="emotionIntensity" type="range" min="1" max="10" className="range range-accent range-sm" value={formData.emotionIntensity} onChange={handleChange} />
+                  </div>
 
-                <select name="isPleasant" className="select select-bordered w-full" value={formData.isPleasant} onChange={handleChange}>
-                  <option value="Nie">Czy przyjemna? Nie</option>
-                  <option value="Tak">Czy przyjemna? Tak</option>
-                </select>
+                  <select name="isPleasant" className="select select-bordered w-full" value={formData.isPleasant} onChange={handleChange}>
+                    <option value="Nie">Czy przyjemna? Nie</option>
+                    <option value="Tak">Czy przyjemna? Tak</option>
+                  </select>
 
-                <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug" value={formData.notes} onChange={handleChange} />
+                  <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug" value={formData.notes} onChange={handleChange} />
 
-                <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>
-                  {editingId ? "Zapisz zmiany" : "Dodaj wpis"}
-                </button>
-                {editingId && (
-                  <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 5, mastery: 5, emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '' }); }}>
-                    Anuluj
+                  <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>
+                    {editingId ? "Zapisz zmiany" : "Dodaj wpis"}
                   </button>
-                )}
-              </form>
+                  {editingId && (
+                    <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 5, mastery: 5, emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '' }); }}>
+                      Anuluj
+                    </button>
+                  )}
+                </form>
+              </div>
             </div>
-          </div>
 
-          <div className={`${isFormExpanded ? 'lg:col-span-4' : 'lg:col-span-6'} transition-all duration-300 ease-in-out relative`}>
-            <div className="card bg-base-100 shadow-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="table table-zebra w-full">
-                  <thead className="bg-base-300">
-                    <tr>
-                      <th className="!relative">Godzina</th>
-                      <th className="min-w-[300px] max-w-[400px]">Aktywność / Kontekst</th>
-                      <th className="text-center">P / M </th>
-                      <th>Emocje</th>
-                      <th>Przyjemna?</th>
-                      <th className="min-w-[300px] max-w-[400px]">Uwagi</th>
-                      <th>Akcje</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activities.length > 0 ? activities.map(act => (
-                      <tr key={act.id} className="hover">
-                        <td className="font-bold">{act.hour}</td>
-                        <td className="min-w-[300px] max-w-[400px]">
-                          <div className="font-bold whitespace-normal">{act.activity}</div>
-                          <div className="text-xs opacity-50">{act.context}</div>
-                        </td>
-                        <td className="text-center">
-                          <div className="tooltip badge badge-primary badge-outline mr-2" data-tip="Przyjemność">{act.pleasure}</div>
-                          <div className="tooltip badge badge-secondary badge-outline" data-tip="Skuteczność/Mastery">{act.mastery}</div>
-                        </td>
-                        <td className="max-w-xs truncate text-xs">
-                          <span className="tooltip badge badge-accent badge-outline mr-2" data-tip="Nasilenie emocji">{act.emotionIntensity}</span> {act.emotion}
-                        </td>
-                        <td> 
-                          <span className={`badge badge-outline ${act.isPleasant === 'Tak' ? 'badge-success' : 'badge-error'}`}>{act.isPleasant}</span>
-                        </td>
-                        <td className="text-xs italic opacity-70 whitespace-normal min-w-[300px] max-w-[400px]">{act.notes}</td>
-                        <td className="space-x-2">
-                          <button className="btn btn-ghost btn-xs text-info" disabled={isReadOnly} onClick={() => startEdit(act)}>Edytuj</button>
-                          <button className="btn btn-ghost btn-xs text-error" disabled={isReadOnly} onClick={() => deleteDoc(doc(db, "activities", act.id))}>Usuń</button>
-                        </td>
+            <div className={`${isFormExpanded ? 'lg:col-span-4' : 'lg:col-span-6'} transition-all duration-300 ease-in-out relative`}>
+              <div className="card bg-base-100 shadow-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="table table-zebra w-full">
+                    <thead className="bg-base-300">
+                      <tr>
+                        <th className="!relative">Godzina</th>
+                        <th className="min-w-[300px] max-w-[400px]">Aktywność / Kontekst</th>
+                        <th className="text-center">P / M </th>
+                        <th>Emocje</th>
+                        <th>Przyjemna?</th>
+                        <th className="min-w-[300px] max-w-[400px]">Uwagi</th>
+                        <th>Akcje</th>
                       </tr>
-                    )) : (
-                      <tr><td colSpan="6" className="text-center py-10 opacity-50">Brak aktywności dla wybranej daty.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {activities.length > 0 ? activities.map(act => (
+                        <tr key={act.id} className="hover">
+                          <td className="font-bold">{act.hour}</td>
+                          <td className="min-w-[300px] max-w-[400px]">
+                            <div className="font-bold whitespace-normal">{act.activity}</div>
+                            <div className="text-xs opacity-50">{act.context}</div>
+                          </td>
+                          <td className="text-center">
+                            <div className="tooltip badge badge-primary badge-outline mr-2" data-tip="Przyjemność">{act.pleasure}</div>
+                            <div className="tooltip badge badge-secondary badge-outline" data-tip="Skuteczność/Mastery">{act.mastery}</div>
+                          </td>
+                          <td className="max-w-xs truncate text-xs">
+                            <span className="tooltip badge badge-accent badge-outline mr-2" data-tip="Nasilenie emocji">{act.emotionIntensity}</span> {act.emotion}
+                          </td>
+                          <td>
+                            <span className={`badge badge-outline ${act.isPleasant === 'Tak' ? 'badge-success' : 'badge-error'}`}>{act.isPleasant}</span>
+                          </td>
+                          <td className="text-xs italic opacity-70 whitespace-normal min-w-[300px] max-w-[400px]">{act.notes}</td>
+                          <td className="space-x-2">
+                            <button className="btn btn-ghost btn-xs text-info" disabled={isReadOnly} onClick={() => startEdit(act)}>Edytuj</button>
+                            <button className="btn btn-ghost btn-xs text-error" disabled={isReadOnly} onClick={() => deleteDoc(doc(db, "activities", act.id))}>Usuń</button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr><td colSpan="6" className="text-center py-10 opacity-50">Brak aktywności dla wybranej daty.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
+              {activities.length > 0 && (
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="alert alert-info shadow-lg">
+                    <div>
+                      <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>
+                      <div className="text-sm font-medium">
+                        {activities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="alert alert-success shadow-lg text-success-content">
+                    <div>
+                      <h3 className="font-bold">Największa przyjemność dziś:</h3>
+                      <div className="text-sm font-medium">
+                        {activities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {activities.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="alert alert-info shadow-lg">
-                  <div>
-                    <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>
-                    <div className="text-sm font-medium">
-                      {activities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
-                    </div>
-                  </div>
-                </div>
-                <div className="alert alert-success shadow-lg text-success-content">
-                  <div>
-                    <h3 className="font-bold">Największa przyjemność dziś:</h3>
-                    <div className="text-sm font-medium">
-                      {activities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-
         </div>
       </div>
-    </div>
-  );
-}
+    ) : (
+      <WeeklyView
+        db={db}
+        user={user}
+        targetUid={targetUid}
+        isReadOnly={isReadOnly}
+        initialDate={selectedDate}
+      />
+    )}
+  </>
+);}
 
 export default MainPage;
