@@ -60,18 +60,17 @@ function MainPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
 
-      // Logika sprawdzania uprawnień
       const urlParams = new URLSearchParams(window.location.search);
       const viewAsUid = urlParams.get('viewAs');
 
       if (viewAsUid && !currentUser) {
-        // Jeśli jest link udostępniania i NIE jesteśmy zalogowani jako właściciel
         setIsReadOnly(true);
         setTargetUid(viewAsUid);
       } else if (currentUser) {
-        // Jeśli jesteśmy zalogowani (nawet jeśli weszliśmy z linku, priorytet ma nasze konto)
         setIsReadOnly(false);
         setTargetUid(currentUser.uid);
+      } else {
+        setTargetUid(null);
       }
     });
     return () => unsubscribe();
@@ -85,19 +84,33 @@ function MainPage() {
   }, [auth]);
 
   useEffect(() => {
-    if (!targetUid) return;
+    // Jeśli nie mamy zidentyfikowanego użytkownika (nasz UID lub viewAs), nie robimy zapytania
+    if (!targetUid) {
+      setActivities([]);
+      return;
+    }
 
+    // Tworzymy zapytanie ograniczające dane do konkretnego użytkownika I konkretnej daty
     const q = query(
       collection(db, "activities"),
-      where("date", "==", selectedDate),
-      where("userId", "==", targetUid)
+      where("userId", "==", targetUid),
+      where("date", "==", selectedDate)
     );
 
+    // Nasłuchiwanie zmian w czasie rzeczywistym tylko dla tego konkretnego zestawu danych
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const data = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      const data = querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      }));
+      // Sortowanie lokalne po godzinie dla lepszego UX
       setActivities(data.sort((a, b) => a.hour.localeCompare(b.hour)));
+      console.log(`Pobrano ${data.length} wpisów dla dnia: ${selectedDate}`);
+    }, (error) => {
+      console.error("Błąd pobierania danych:", error);
     });
 
+    // Czyścimy subskrypcję przy zmianie daty lub użytkownika
     return () => unsubscribe();
   }, [selectedDate, targetUid]);
 
