@@ -184,30 +184,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           Eksportuj Tydzień (PDF)
         </button>
       </div>
-      <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
-
-      {/* Tabela Nastroju i Energii - Początek tygodnia */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="card bg-base-100 shadow p-4">
-          <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10): {weeklyData?.moodStart || 0}</h3>
-          <input
-            type="range" min="0" max="10" className="range range-primary"
-            disabled={isReadOnly}
-            value={weeklyData?.moodStart || 0}
-            onChange={(e) => handleWeeklyUpdate({ moodStart: Number(e.target.value) }, true)}
-          />
-        </div>
-        <div className="card bg-base-100 shadow p-4">
-          <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10): {weeklyData?.energyStart || 0}</h3>
-          <input
-            type="range" min="0" max="10" className="range range-secondary"
-            disabled={isReadOnly}
-            value={weeklyData?.energyStart || 0}
-            onChange={(e) => handleWeeklyUpdate({ energyStart: Number(e.target.value) }, true)}
-          />
-        </div>
-      </section>
-
       {/* Dni Tygodnia - Nawigacja */}
       <div className="tabs tabs-boxed justify-center">
         {DAYS.map((day, index) => (
@@ -228,6 +204,32 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         isReadOnly={isReadOnly}
         displayDate={currentDayDate} // NOWY PROP
       />
+     
+      <h2 className="text-2xl md:text-3xl font-bold text-secondary my-8 text-center">
+        Podsumowanie Tygodnia
+      </h2>
+      {/* Tabela Nastroju i Energii - Początek tygodnia */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+        <div className="card bg-base-100 shadow p-4">
+          <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10): {weeklyData?.moodStart || 0}</h3>
+          <input
+            type="range" min="0" max="10" className="range range-primary"
+            disabled={isReadOnly}
+            value={weeklyData?.moodStart || 0}
+            onChange={(e) => handleWeeklyUpdate({ moodStart: Number(e.target.value) }, true)}
+          />
+        </div>
+        <div className="card bg-base-100 shadow p-4">
+          <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10): {weeklyData?.energyStart || 0}</h3>
+          <input
+            type="range" min="0" max="10" className="range range-secondary"
+            disabled={isReadOnly}
+            value={weeklyData?.energyStart || 0}
+            onChange={(e) => handleWeeklyUpdate({ energyStart: Number(e.target.value) }, true)}
+          />
+        </div>
+      </section>
+      <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
       {/* Sekcja Podsumowania Tygodnia */}
       <WeeklySummary
         summaries={weeklyData?.summaries}
