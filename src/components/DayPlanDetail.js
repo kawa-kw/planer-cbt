@@ -62,6 +62,7 @@ const DayPlanDetail = ({ data, onSave, isReadOnly, displayDate }) => {
                   disabled={isReadOnly}
                   onChange={() => handleLocalChange('category', cat)}
                 />
+                
                 <span className="label-text capitalize">{cat}</span>
               </label>
             ))}
