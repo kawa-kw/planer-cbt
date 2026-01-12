@@ -32,7 +32,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   useEffect(() => {
     // Initialize with current week if empty
     if (!currentWeekKey) setCurrentWeekKey(getWeekKey(new Date()));
-  }, []);
+  }, [currentWeekKey]);
 
   useEffect(() => {
     if (!targetUid || !currentWeekKey) return;
