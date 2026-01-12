@@ -400,7 +400,7 @@ function MainPage() {
               </div>
 
               {activities.length > 0 && (
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="alert alert-info shadow-lg">
                     <div>
                       <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>

@@ -15,7 +15,7 @@ const DayPlanDetail = ({ data, onSave, isReadOnly, displayDate }) => {
 
   return (
     <div className="card rounded-l-none bg-base-100 shadow-xl p-6 border-l-4 border-secondary">
-      <p className="text-lg font-bold mb-4 text-center text-warning">{displayDate}</p>
+      <p className="text-lg font-bold mb-2 text-center text-primary">{displayDate}</p>
       <MoodTable
         moodData={data?.moodTracker}
         isReadOnly={isReadOnly}

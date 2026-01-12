@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, updateDoc, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import DayPlanDetail from "./DayPlanDetail";
-import { getDateFromWeekKey, getFullWeekRange, getWeekKey, removePolishAccents } from "../helpers";
+import { getAdjacentWeekKey, getDateFromWeekKey, getFullWeekRange, getWeekKey, removePolishAccents } from "../helpers";
 import WeeklySummary from "./WeeklySummary";
 import MoodChart from "./MoodChart";
 
@@ -26,46 +26,25 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   const currentDayName = DAYS[activeDayIndex];
   const weekRange = getFullWeekRange(currentWeekKey);
 
+  const goToNextWeek = () => setCurrentWeekKey(prev => getAdjacentWeekKey(prev, "next"));
+  const goToPreviousWeek = () => setCurrentWeekKey(prev => getAdjacentWeekKey(prev, "prev"));
+
   useEffect(() => {
-    if (!targetUid) return;
+    // Initialize with current week if empty
+    if (!currentWeekKey) setCurrentWeekKey(getWeekKey(new Date()));
+  }, []);
 
-    const weekKey = getWeekKey(new Date());
-    setCurrentWeekKey(weekKey);
+  useEffect(() => {
+    if (!targetUid || !currentWeekKey) return;
 
-    const docRef = doc(db, "weeklyData", `${targetUid}_${weekKey}`);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setWeeklyData(docSnap.data());
-      } else if (!isReadOnly) {
-        const initialData = {
-          userId: targetUid,
-          weekKey,
-          moodStart: 5,
-          energyStart: 5,
-          moodEnd: 5,
-          energyEnd: 5,
-          plannedActivities: DAYS.reduce((acc, day) => ({
-            ...acc, [day]: {
-              activity: "",
-              category: "",
-              status: "nie",
-              moodAfter: 5,
-              energyAfter: 5,
-              // DODAJ TO: Inicjalizacja pustej tabeli nastroju dla każdego dnia
-              moodTracker: {
-                rano: { mood: 5, energy: 5, note: "" },
-                poludnie: { mood: 5, energy: 5, note: "" },
-                wieczor: { mood: 5, energy: 5, note: "" }
-              }
-            }
-          }), {}),
-          summaries: { mostHelpful: "", hardest: "", positiveInfluence: "", nextWeekGoal: "" }
-        };
-        setDoc(docRef, initialData);
-      }
+    const docRef = doc(db, "weeklyData", `${targetUid}_${currentWeekKey}`);
+    const unsub = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) setWeeklyData(docSnap.data());
+      else setWeeklyData(null);
     });
-    return () => unsubscribe();
-  }, [targetUid, db, isReadOnly]);
+
+    return () => unsub();
+  }, [db, targetUid, currentWeekKey]);
 
   const handleWeeklyUpdate = async (newData, isTopLevel = false) => {
     if (isReadOnly) return;
@@ -173,7 +152,14 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.save(`plan-tygodniowy-${currentWeekKey}.pdf`);
   };
 
-  const currentDayDate = currentWeekKey ? getDateFromWeekKey(currentWeekKey, activeDayIndex) : "";
+  const currentDayDate = currentWeekKey
+    ? getDateFromWeekKey(currentWeekKey, activeDayIndex).toLocaleDateString("pl-PL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    : "";
+
 
   return (
     <div className="min-h-screen bg-base-200 p-4 md:p-8">
@@ -182,7 +168,11 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         <h1 className="text-2xl md:text-3xl font-bold text-primary flex justify-center items-center gap-2">
           Tygodniowy plan aktywizacji
         </h1>
-        <p className="text-base font-bold opacity-60 mt-1">({weekRange})</p>
+        <div className="flex justify-center gap-6 items-center my-4">
+          <button className="btn btn-outline btn-secondary btn-xs" onClick={goToPreviousWeek}>← <span className="hidden md:inline ml-1">Poprzedni tydzień</span></button>
+          <span className="text-xs md:text-base font-bold">{weekRange}</span>
+          <button className="btn btn-outline btn-secondary btn-xs" onClick={goToNextWeek}><span className="hidden md:inline mr-1">Następny tydzień</span> →</button>
+        </div>
         {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
       </div>
       <div className="flex justify-end gap-2 mb-4">
@@ -199,7 +189,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       {/* Tabela Nastroju i Energii - Początek tygodnia */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card bg-base-100 shadow p-4">
-          <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10)</h3>
+          <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10): {weeklyData?.moodStart || 0}</h3>
           <input
             type="range" min="0" max="10" className="range range-primary"
             disabled={isReadOnly}
@@ -208,7 +198,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           />
         </div>
         <div className="card bg-base-100 shadow p-4">
-          <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10)</h3>
+          <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10): {weeklyData?.energyStart || 0}</h3>
           <input
             type="range" min="0" max="10" className="range range-secondary"
             disabled={isReadOnly}
