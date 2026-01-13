@@ -61,7 +61,7 @@ const MoodCard = ({ label, values, onChange, isReadOnly }) => {
           <input
             type="text"
             placeholder="Krótka notatka / sytuacja..."
-            className="input input-bordered input-sm w-full bg-base-100"
+            className="input input-bordered input-sm w-full bg-base-100 focus:border-accent focus:ring-1 focus:ring-accent"
             value={values?.note || ""}
             disabled={isReadOnly}
             onChange={(e) => onChange('note', e.target.value)}

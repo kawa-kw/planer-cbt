@@ -22,7 +22,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Co pomogło najbardziej:</label>
           <textarea
-            className="textarea textarea-bordered leading-normal"
+            className="textarea textarea-bordered focus:border-accent focus:ring-1 focus:ring-accent leading-normal"
             disabled={isReadOnly}
             value={summaries?.mostHelpful || ""}
             onChange={(e) => handleChange('mostHelpful', e.target.value)}
@@ -32,7 +32,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Co było najtrudniejsze:</label>
           <textarea
-            className="textarea textarea-bordered leading-normal"
+            className="textarea textarea-bordered focus:border-accent focus:ring-1 focus:ring-accent leading-normal"
             disabled={isReadOnly}
             value={summaries?.hardest || ""}
             onChange={(e) => handleChange('hardest', e.target.value)}
@@ -42,7 +42,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Jakie aktywności miały pozytywny wpływ na nastrój:</label>
           <textarea
-            className="textarea textarea-bordered leading-normal"
+            className="textarea textarea-bordered focus:border-accent focus:ring-1 focus:ring-accent leading-normal"
             disabled={isReadOnly}
             value={summaries?.positiveInfluence || ""}
             onChange={(e) => handleChange('positiveInfluence', e.target.value)}
@@ -52,7 +52,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Jedna rzecz, którą chcę spróbować w kolejnym tygodniu:</label>
           <input
-            className="input input-bordered"
+            className="focus:border-accent focus:ring-1 focus:ring-accent input input-bordered"
             disabled={isReadOnly}
             value={summaries?.nextWeekGoal || ""}
             onChange={(e) => handleChange('nextWeekGoal', e.target.value)}

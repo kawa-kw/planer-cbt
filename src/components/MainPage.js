@@ -12,6 +12,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import WeeklyView from "./WeeklyView";
+import NotesView from "./NotesView";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAWvWHUoQhdeL7PicXgMwOTRfSWVrVm9I",
@@ -230,11 +231,11 @@ function MainPage() {
             <h2 className="text-2xl font-bold">Logowanie do Planera CBT</h2>
             <div className="form-control">
               <label className="label"><span className="label-text">E-mail</span></label>
-              <input type="email" onChange={(e) => setLoginEmail(e.target.value)} className="input input-bordered" required />
+              <input type="email" onChange={(e) => setLoginEmail(e.target.value)} className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" required />
             </div>
             <div className="form-control">
               <label className="label"><span className="label-text">Hasło</span></label>
-              <input type="password" onChange={(e) => setLoginPassword(e.target.value)} className="input input-bordered" required />
+              <input type="password" onChange={(e) => setLoginPassword(e.target.value)} className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" required />
             </div>
             <button className="btn btn-primary mt-6">Zaloguj się</button>
           </form>
@@ -250,9 +251,13 @@ function MainPage() {
           onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
         <button className={`tab ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`}
           onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
+        {!isReadOnly && <button
+          className={`tab ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`}
+          onClick={() => setActiveTab('notes')}
+        >Notatki</button>}
       </div>
 
-    {activeTab === "daily" ? (
+    {activeTab === "daily" && (
       <div className="min-h-screen bg-base-200 p-4 md:p-8">
         <div className="max-w-[1800px] mx-auto">
           <header className="mb-8 lg:mb-0 text-center relative">
@@ -286,7 +291,7 @@ function MainPage() {
                 <h2 className="card-title mb-4">Wybierz datę</h2>
                 <input
                   type="date"
-                  className="input input-bordered"
+                  className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                 />
@@ -297,15 +302,15 @@ function MainPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="form-control">
                     <label className="label text-xs font-bold uppercase">Godzina</label>
-                    <input name="hour" type="time" className="input input-bordered" value={formData.hour} onChange={handleChange} required />
+                    <input name="hour" type="time" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.hour} onChange={handleChange} required />
                   </div>
 
                   <div className="form-control">
-                    <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered" value={formData.activity} onChange={handleChange} required />
+                    <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.activity} onChange={handleChange} required />
                   </div>
 
                   <div className="form-control">
-                    <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered" value={formData.context} onChange={handleChange} />
+                    <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.context} onChange={handleChange} />
                   </div>
 
                   <div className="form-control">
@@ -323,7 +328,7 @@ function MainPage() {
                   </div>
 
                   <div className="form-control">
-                    <input name="emotion" placeholder="Emocje (np. lęk, radość)" className="input input-bordered" value={formData.emotion} onChange={handleChange} />
+                    <input name="emotion" placeholder="Emocje (np. lęk, radość)" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.emotion} onChange={handleChange} />
                   </div>
 
                   <div className="form-control">
@@ -338,7 +343,7 @@ function MainPage() {
                     <option value="Tak">Czy przyjemna? Tak</option>
                   </select>
 
-                  <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug" value={formData.notes} onChange={handleChange} />
+                  <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug focus:border-accent focus:ring-1 focus:ring-accent" value={formData.notes} onChange={handleChange} />
 
                   <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>
                     {editingId ? "Zapisz zmiany" : "Dodaj wpis"}
@@ -424,13 +429,21 @@ function MainPage() {
           </div>
         </div>
       </div>
-    ) : (
+    )}
+    {activeTab === 'weekly' && (
       <WeeklyView
         db={db}
         user={user}
         targetUid={targetUid}
         isReadOnly={isReadOnly}
         initialDate={selectedDate}
+      />
+    )}
+    {!isReadOnly && activeTab === 'notes' && (
+      <NotesView 
+        db={db} 
+        targetUid={targetUid} // lub user.uid w zależności jak przekazujesz ID
+        isReadOnly={isReadOnly}
       />
     )}
   </>

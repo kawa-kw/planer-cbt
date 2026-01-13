@@ -36,7 +36,7 @@ const DayPlanDetail = ({ data, onSave, isReadOnly, displayDate }) => {
           <input
             type="text"
             placeholder="Wybierz realistyczny, mały krok..."
-            className="input input-bordered w-full"
+            className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent w-full"
             value={data?.activity || ""}
             disabled={isReadOnly}
             onChange={(e) => handleLocalChange('activity', e.target.value)}
