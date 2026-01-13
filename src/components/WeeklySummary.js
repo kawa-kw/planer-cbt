@@ -22,7 +22,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Co pomogło najbardziej:</label>
           <textarea
-            className="textarea textarea-bordered h-20"
+            className="textarea textarea-bordered leading-normal"
             disabled={isReadOnly}
             value={summaries?.mostHelpful || ""}
             onChange={(e) => handleChange('mostHelpful', e.target.value)}
@@ -32,7 +32,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Co było najtrudniejsze:</label>
           <textarea
-            className="textarea textarea-bordered h-20"
+            className="textarea textarea-bordered leading-normal"
             disabled={isReadOnly}
             value={summaries?.hardest || ""}
             onChange={(e) => handleChange('hardest', e.target.value)}
@@ -42,7 +42,7 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="form-control">
           <label className="label-text font-bold mb-2">Jakie aktywności miały pozytywny wpływ na nastrój:</label>
           <textarea
-            className="textarea textarea-bordered h-20"
+            className="textarea textarea-bordered leading-normal"
             disabled={isReadOnly}
             value={summaries?.positiveInfluence || ""}
             onChange={(e) => handleChange('positiveInfluence', e.target.value)}
@@ -63,26 +63,26 @@ const WeeklySummary = ({ summaries, moodEnd, energyEnd, onUpdate, isReadOnly }) 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-base-300">
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-bold">Poziom nastroju na koniec tygodnia: {moodEnd || 5}</span>
+              <span className="label-text font-bold">Poziom nastroju na koniec tygodnia: {moodEnd || 0}</span>
             </label>
             <input
               type="range" min="0" max="10"
               className="range range-primary"
               disabled={isReadOnly}
-              value={moodEnd || 5}
+              value={moodEnd || 0}
               onChange={(e) => handleScoreChange('moodEnd', e.target.value)}
             />
           </div>
 
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-bold">Poziom energii na koniec tygodnia: {energyEnd || 5}</span>
+              <span className="label-text font-bold">Poziom energii na koniec tygodnia: {energyEnd || 0}</span>
             </label>
             <input
               type="range" min="0" max="10"
               className="range range-secondary"
               disabled={isReadOnly}
-              value={energyEnd || 5}
+              value={energyEnd || 0}
               onChange={(e) => handleScoreChange('energyEnd', e.target.value)}
             />
           </div>

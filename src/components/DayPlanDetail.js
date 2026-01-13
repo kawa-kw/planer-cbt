@@ -95,12 +95,12 @@ const DayPlanDetail = ({ data, onSave, isReadOnly, displayDate }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-base-200 rounded-lg">
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-bold text-primary">Nastrój po (0–10): {data?.moodAfter || 5}</span>
+              <span className="label-text font-bold text-primary">Nastrój po (0–10): {data?.moodAfter || 0}</span>
             </label>
             <input
               type="range" min="0" max="10"
               className="range range-primary range-sm"
-              value={data?.moodAfter || 5}
+              value={data?.moodAfter || 0}
               disabled={isReadOnly}
               onChange={(e) => handleLocalChange('moodAfter', Number(e.target.value))}
             />
@@ -108,12 +108,12 @@ const DayPlanDetail = ({ data, onSave, isReadOnly, displayDate }) => {
 
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-bold text-secondary">Energia po (0–10): {data?.energyAfter || 5}</span>
+              <span className="label-text font-bold text-secondary">Energia po (0–10): {data?.energyAfter || 0}</span>
             </label>
             <input
               type="range" min="0" max="10"
               className="range range-secondary range-sm"
-              value={data?.energyAfter || 5}
+              value={data?.energyAfter || 0}
               disabled={isReadOnly}
               onChange={(e) => handleLocalChange('energyAfter', Number(e.target.value))}
             />

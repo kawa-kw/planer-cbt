@@ -46,8 +46,8 @@ function MainPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    hour: '', activity: '', context: '', pleasure: 5, mastery: 5,
-    emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '', userId: ''
+    hour: '', activity: '', context: '', pleasure: 0, mastery: 0,
+    emotion: '', emotionIntensity: 0, isPleasant: 'Tak', notes: '', userId: ''
   });
   const [isFormExpanded, setIsFormExpanded] = useState(false);
   const auth = getAuth(app);
@@ -144,7 +144,7 @@ function MainPage() {
       } else {
         await addDoc(collection(db, "activities"), payload);
       }
-      setFormData({ hour: '', activity: '', context: '', pleasure: 5, mastery: 5, emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '', userId: '' });
+      setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', notes: '', userId: '' });
     } catch (err) { alert(err); }
   };
 
@@ -344,7 +344,7 @@ function MainPage() {
                     {editingId ? "Zapisz zmiany" : "Dodaj wpis"}
                   </button>
                   {editingId && (
-                    <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 5, mastery: 5, emotion: '', emotionIntensity: 5, isPleasant: 'Tak', notes: '' }); }}>
+                    <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', notes: '' }); }}>
                       Anuluj
                     </button>
                   )}
