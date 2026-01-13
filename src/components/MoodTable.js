@@ -1,7 +1,7 @@
 import React from 'react';
 
 const MoodCard = ({ label, values, onChange, isReadOnly }) => {
-  const points = [0, 2, 4, 6, 8, 10];
+  const points = [1, 2,3, 4, 5, 6, 7, 8, 9, 10];
 
   const getMoodColor = () => `hsl(258.89 94.378% 51.176%)`; // primary
   const getEnergyColor = () => `hsl(314 100% 47.059%)`; // secondary
@@ -13,7 +13,7 @@ const MoodCard = ({ label, values, onChange, isReadOnly }) => {
         <span>{values?.[field] ?? 0}/10</span>
       </div>
 
-      <div className="grid grid-cols-6 gap-1">
+      <div className="grid grid-cols-5 gap-1">
         {points.map((point) => {
           const isSelected = values?.[field] === point;
           const readOnlyStyle =
