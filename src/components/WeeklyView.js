@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -15,9 +15,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   const [currentWeekKey, setCurrentWeekKey] = useState("");
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (initialDate) {
-      // Pobieramy numer dnia (0 dla Niedzieli, 1 dla Poniedziałku...)
       const day = new Date(initialDate).getDay();
-      // Konwertujemy na Twój format (0-Poniedziałek, 6-Niedziela)
       return day === 0 ? 6 : day - 1;
     }
     return 0;
@@ -30,7 +28,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   const goToPreviousWeek = () => setCurrentWeekKey(prev => getAdjacentWeekKey(prev, "prev"));
 
   useEffect(() => {
-    // Initialize with current week if empty
     if (!currentWeekKey) setCurrentWeekKey(getWeekKey(new Date()));
   }, [currentWeekKey]);
 
@@ -52,10 +49,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
     try {
       if (isTopLevel) {
-        // Pozwala zapisać moodStart, energyStart, moodEnd, energyEnd
         await updateDoc(docRef, newData);
       } else {
-        // Aktualizuje obiekt summaries (pola tekstowe)
         await updateDoc(docRef, { summaries: { ...weeklyData.summaries, ...newData } });
       }
     } catch (error) {
@@ -63,7 +58,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     }
   };
 
-  // Funkcja aktualizacji konkretnego dnia w dzienniku aktywizacji
   const handleDayUpdate = async (dayData) => {
     if (isReadOnly) return;
     const currentDayName = DAYS[activeDayIndex];
@@ -74,7 +68,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     });
   };
 
-  const exportWeeklyToPDF = () => {
+  // --- FUNKCJA EKSPORTU PDF ---
+  const exportWeeklyToPDF = async () => {
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
@@ -82,74 +77,188 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     });
 
     const weekRange = getFullWeekRange(currentWeekKey);
-    doc.setFontSize(16);
-    doc.text(removePolishAccents(`Tygodniowy plan aktywizacji: ${weekRange}`), 14, 15);
 
-    // SEKCJA 1: Dziennik Aktywizacji
-    const mainTableColumn = ["Dzien", "Aktywnosc", "Kategoria", "Wykonano", "Nastroj po", "Energia po"];
-    const mainTableRows = DAYS.map(day => {
-      const act = weeklyData.plannedActivities?.[day] || {};
-      return [
-        removePolishAccents(day), // DODANO: removePolishAccents dla nazwy dnia
-        removePolishAccents(act.activity || ""),
-        removePolishAccents(act.category || ""),
-        removePolishAccents(act.status || ""),
-        act.moodAfter || "-",
-        act.energyAfter || "-"
-      ];
-    });
+    // 1. Pobieramy WSZYSTKIE aktywności z widoku dziennego dla tego użytkownika
+    // (Pobieramy raz, a potem filtrujemy w pętli dla wydajności)
+    let allDailyActivities = [];
+    try {
+      const q = query(collection(db, "activities"), where("userId", "==", targetUid));
+      const querySnapshot = await getDocs(q);
+      allDailyActivities = querySnapshot.docs.map(doc => doc.data());
+    } catch (error) {
+      console.log("Błąd pobierania aktywności dziennych:", error);
+    }
+
+    // STRONA 1: PODSUMOWANIE TYGODNIA
+    doc.setFontSize(18);
+    doc.setTextColor(79, 70, 229);
+    doc.text(removePolishAccents(`Podsumowanie Tygodnia: ${weekRange}`), 14, 15);
+    doc.setTextColor(0, 0, 0);
+
+    const metricsData = [
+      ["Poczatek Tygodnia", `Nastroj: ${weeklyData?.moodStart ?? 0}/10`, `Energia: ${weeklyData?.energyStart ?? 0}/10`],
+      ["Koniec Tygodnia", `Nastroj: ${weeklyData?.moodEnd ?? 0}/10`, `Energia: ${weeklyData?.energyEnd ?? 0}/10`]
+    ];
 
     autoTable(doc, {
-      head: [mainTableColumn],
-      body: mainTableRows,
+      head: [["Okres", "Nastroj (srednia)", "Energia (srednia)"]],
+      body: metricsData,
       startY: 25,
       theme: 'grid',
-      headStyles: { fillColor: [79, 70, 229] },
-      styles: { fontSize: 8 }
+      headStyles: { fillColor: [220, 220, 220], textColor: 50 },
+      styles: { fontSize: 10, halign: 'center' }
     });
 
-    // SEKCJA 2: Monitoring Dobowy Nastroju
-    doc.addPage();
+    let finalY = doc.lastAutoTable.finalY + 15;
     doc.setFontSize(14);
-    doc.text(removePolishAccents("Monitoring Dobowy Nastroju"), 14, 15);
+    doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), 14, finalY);
+    finalY += 8;
 
-    const moodTableColumn = ["Dzien", "Pora", "Nastroj", "Energia", "Notatka"];
-    const moodTableRows = [];
+    const s = weeklyData?.summaries || {};
+    const summaryItems = [
+      { label: "Co pomoglo najbardziej:", value: s.mostHelpful },
+      { label: "Co bylo najtrudniejsze:", value: s.hardest },
+      { label: "Pozytywny wplyw na nastroj:", value: s.positiveInfluence },
+      { label: "Cel na przyszly tydzien:", value: s.nextWeekGoal }
+    ];
 
-    DAYS.forEach(day => {
-      const tracker = weeklyData.plannedActivities?.[day]?.moodTracker || {};
-      ['rano', 'poludnie', 'wieczor'].forEach((pora, idx) => {
-        moodTableRows.push([
-          // DODANO: removePolishAccents dla nazwy dnia
-          idx === 0 ? removePolishAccents(day) : "",
-          pora.charAt(0).toUpperCase() + pora.slice(1),
-          tracker[pora]?.mood || "-",
-          tracker[pora]?.energy || "-",
-          removePolishAccents(tracker[pora]?.note || "")
-        ]);
+    doc.setFontSize(11);
+    summaryItems.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(removePolishAccents(item.label), 14, finalY);
+      finalY += 6;
+      doc.setFont("helvetica", "normal");
+      const splitText = doc.splitTextToSize(removePolishAccents(item.value || "- brak wpisu -"), 260);
+      doc.text(splitText, 14, finalY);
+      finalY += (splitText.length * 5) + 8;
+      if (finalY > 180) { doc.addPage(); finalY = 20; }
+    });
+
+    // STRONY 2-8: SZCZEGÓŁY DLA KAŻDEGO DNIA
+    for (let i = 0; i < DAYS.length; i++) {
+      const day = DAYS[i];
+      doc.addPage();
+      const dateObj = getDateFromWeekKey(currentWeekKey, i);
+      const dateStringPL = dateObj.toLocaleDateString("pl-PL"); // np. 15.01.2024 (do nagłówka)
+
+      // Formatowanie daty do porównania z bazą (YYYY-MM-DD)
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const dateStringISO = `${yyyy}-${mm}-${dd}`;
+
+      const dayData = weeklyData?.plannedActivities?.[day] || {};
+
+      // Nagłówek Dnia
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(79, 70, 229);
+      doc.text(removePolishAccents(`${day} (${dateStringPL})`), 14, 15);
+      doc.setTextColor(0, 0, 0);
+
+      // TABELA 1: Plan Aktywizacji (Główny cel z widoku tygodniowego)
+      doc.setFontSize(12);
+      doc.text(removePolishAccents("Plan Aktywizacji (Glowny Cel)"), 14, 25);
+
+      const activityRow = [
+        removePolishAccents(dayData.activity || ""),
+        removePolishAccents(dayData.category || ""),
+        removePolishAccents(dayData.status || "nie"),
+        dayData.moodAfter ?? "-",
+        dayData.energyAfter ?? "-"
+      ];
+
+      autoTable(doc, {
+        head: [["Aktywnosc", "Kategoria", "Wykonano", "Nastroj po", "Energia po"]],
+        body: [activityRow],
+        startY: 30,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 10 }
       });
-    });
 
-    autoTable(doc, {
-      head: [moodTableColumn],
-      body: moodTableRows,
-      startY: 25,
-      theme: 'striped',
-      headStyles: { fillColor: [236, 72, 153] },
-      styles: { fontSize: 7 }
-    });
+      // TABELA 2: Monitoring Dobowy Nastroju
+      let trackerY = doc.lastAutoTable.finalY + 10;
+      doc.text(removePolishAccents("Monitoring Dobowy Nastroju"), 14, trackerY);
 
-    // SEKCJA 3: Podsumowanie (upewnij się, że s.mostHelpful itp. też mają removePolishAccents)
-    let finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(12);
-    doc.text(removePolishAccents("Podsumowanie Tygodnia (CBT)"), 14, finalY);
+      const tracker = dayData.moodTracker || {};
+      const trackerRows = ['rano', 'poludnie', 'wieczor'].map(pora => [
+        removePolishAccents(pora.charAt(0).toUpperCase() + pora.slice(1)),
+        tracker[pora]?.mood ?? "-",
+        tracker[pora]?.energy ?? "-",
+        removePolishAccents(tracker[pora]?.note || "")
+      ]);
 
-    const s = weeklyData.summaries || {};
-    doc.setFontSize(9);
-    doc.text(removePolishAccents(`Co pomoglo: ${s.mostHelpful || ""}`), 14, finalY + 7);
-    doc.text(removePolishAccents(`Najtrudniejsze: ${s.hardest || ""}`), 14, finalY + 14);
+      autoTable(doc, {
+        head: [["Pora", "Nastroj", "Energia", "Notatka / Sytuacja"]],
+        body: trackerRows,
+        startY: trackerY + 5,
+        theme: 'striped',
+        headStyles: { fillColor: [236, 72, 153] },
+        styles: { fontSize: 10 },
+        columnStyles: { 3: { cellWidth: 100 } }
+      });
 
-    doc.save(`plan-tygodniowy-${currentWeekKey}.pdf`);
+      // TABELA 3: Dzienny plan aktywności – CBT (Szczegółowa tabela z Widoku Dziennego)
+      let logY = doc.lastAutoTable.finalY + 15;
+      doc.text(removePolishAccents("Dzienny plan aktywnosci - CBT"), 14, logY);
+
+      // Filtrowanie i sortowanie aktywności dla danego dnia
+      const dailyActivities = allDailyActivities
+        .filter(act => act.date === dateStringISO)
+        .sort((a, b) => (a.hour || '').localeCompare(b.hour || ''));
+
+      // Kolumny zgodne z MainPage.js
+      const dailyColumns = [
+        "Godzina",
+        "Aktywnosc",
+        "Kontekst",
+        "Przyj. (1-10)",
+        "Skut. (1-10)",
+        "Emocje",
+        "Sila",
+        "Przyj.?",
+        "Uwagi"
+      ];
+
+      const dailyRows = dailyActivities.map(act => [
+        act.hour,
+        removePolishAccents(act.activity || ""),
+        removePolishAccents(act.context || ""),
+        act.pleasure,
+        act.mastery,
+        removePolishAccents(act.emotion || ""),
+        act.emotionIntensity,
+        act.isPleasant,
+        removePolishAccents(act.notes || "")
+      ]);
+
+      if (dailyRows.length === 0) {
+        dailyRows.push(["-", "Brak wpisow w widoku dziennym", "-", "-", "-", "-", "-", "-", "-"]);
+      }
+
+      autoTable(doc, {
+        head: [dailyColumns],
+        body: dailyRows,
+        startY: logY + 5,
+        theme: 'grid',
+        // Stylowanie zgodne z MainPage.js
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: { 8: { cellWidth: 50 } } // Uwagi węższe, żeby się zmieściło
+      });
+    }
+
+    // Stopka
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Strona ${i} z ${pageCount}`, 280, 200, { align: 'right' });
+    }
+
+    doc.save(`raport-tygodniowy-${currentWeekKey}.pdf`);
   };
 
   const currentDayDate = currentWeekKey
@@ -159,7 +268,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       year: "numeric",
     })
     : "";
-
 
   return (
     <div className="min-h-screen bg-base-200 p-4 md:p-8">
