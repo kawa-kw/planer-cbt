@@ -80,7 +80,7 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
   }
 
   return (
-    <div className="relative min-h-screen bg-base-200 p-4 md:p-8 space-y-8 lg:space-y-0 max-w-4xl mx-auto animate-fade-in lg:flex lg:max-w-full lg:justify-start lg:items-stretch lg:gap-6">
+    <div className="relative min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8 space-y-8 lg:space-y-0 max-w-4xl mx-auto animate-fade-in lg:flex lg:max-w-full lg:justify-start lg:items-stretch lg:gap-6">
       {/* Formularz dodawania */}
       <div className="card bg-base-100 shadow-xl border-t-4 rounded-t-none border-accent w-full lg:max-w-md">
         <div className="card-body">

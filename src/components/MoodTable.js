@@ -1,7 +1,7 @@
 import React from 'react';
 
 const MoodCard = ({ label, values, onChange, isReadOnly }) => {
-  const points = [1, 2,3, 4, 5, 6, 7, 8, 9, 10];
+  const points = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   const getMoodColor = () => `hsl(258.89 94.378% 51.176%)`; // primary
   const getEnergyColor = () => `hsl(314 100% 47.059%)`; // secondary
@@ -13,7 +13,7 @@ const MoodCard = ({ label, values, onChange, isReadOnly }) => {
         <span>{values?.[field] ?? 0}/10</span>
       </div>
 
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-10 gap-1">
         {points.map((point) => {
           const isSelected = values?.[field] === point;
           const readOnlyStyle =
@@ -93,7 +93,7 @@ const MoodTable = ({ moodData, onUpdate, isReadOnly }) => {
         Monitoring Dobowy Nastroju
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
         {poryDnia.map((pora) => (
           <MoodCard
             key={pora.key}

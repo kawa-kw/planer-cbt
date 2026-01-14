@@ -4,6 +4,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import {
   getFirestore, collection, addDoc, query, where,
@@ -122,6 +123,20 @@ function MainPage() {
     signInWithEmailAndPassword(auth, loginEmail, loginPassword)
       .catch(err => alert("Błąd logowania: " + err.message));
   };
+
+  const handlePasswordReset = () => {
+    if (!loginEmail) {
+      alert("Proszę wpisać adres e-mail w polu logowania, aby zresetować hasło.");
+      return;
+    }
+    sendPasswordResetEmail(auth, loginEmail)
+      .then(() => {
+        alert("Link do resetowania hasła został wysłany na Twój adres e-mail. Sprawdź skrzynkę (również folder SPAM).");
+      })
+      .catch((error) => {
+        alert("Błąd resetowania hasła: " + error.message);
+      });
+  };
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -225,7 +240,7 @@ function MainPage() {
 
   if (!user && !hasViewParam) {
     return (
-      <div className="hero min-h-screen bg-base-200">
+      <div className="hero min-h-[calc(100vh-64px)] bg-base-200">
         <div className="card w-full max-w-sm shadow-2xl bg-base-100">
           <form className="card-body" onSubmit={handleLogin}>
             <h2 className="text-2xl font-bold">Logowanie do Planera CBT</h2>
@@ -236,13 +251,21 @@ function MainPage() {
             <div className="form-control">
               <label className="label"><span className="label-text">Hasło</span></label>
               <input type="password" onChange={(e) => setLoginPassword(e.target.value)} className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" required />
+              <label className="label">
+                <span
+                  onClick={handlePasswordReset}
+                  className="label-text-alt link link-hover text-primary cursor-pointer"
+                >
+                  Zapomniałeś hasła?
+                </span>
+              </label>
             </div>
             <button className="btn btn-primary mt-6">Zaloguj się</button>
           </form>
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <>
@@ -258,7 +281,7 @@ function MainPage() {
       </div>
 
     {activeTab === "daily" && (
-      <div className="min-h-screen bg-base-200 p-4 md:p-8">
+      <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
         <div className="max-w-[1800px] mx-auto">
           <header className="mb-8 lg:mb-0 text-center relative">
             <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
