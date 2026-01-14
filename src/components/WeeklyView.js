@@ -101,7 +101,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     ];
 
     autoTable(doc, {
-      head: [["Okres", "Nastroj (srednia)", "Energia (srednia)"]],
+      head: [["Okres", "Nastroj", "Energia"]],
       body: metricsData,
       startY: 25,
       theme: 'grid',
@@ -109,7 +109,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       styles: { fontSize: 10, halign: 'center' }
     });
 
-    let finalY = doc.lastAutoTable.finalY + 15;
+    let finalY = doc.lastAutoTable.finalY + 5;
     doc.setFontSize(14);
     doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), 14, finalY);
     finalY += 8;
@@ -245,7 +245,20 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         // Stylowanie zgodne z MainPage.js
         headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
         styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: { 8: { cellWidth: 50 } } // Uwagi węższe, żeby się zmieściło
+        columnStyles: { 8: { cellWidth: 50 } }, // Uwagi węższe, żeby się zmieściło
+        didParseCell: function (data) {
+          // Sprawdzamy czy to sekcja danych (body) i czy to kolumna "Przyj.?" (indeks 7)
+          if (data.section === 'body' && data.column.index === 7) {
+            const value = data.cell.raw; // Pobieramy tekst z komórki
+
+            if (value === 'Tak') {
+              data.cell.styles.textColor = [22, 163, 74]; // Zielony (RGB)
+              data.cell.styles.fontStyle = 'bold';        // Opcjonalnie: pogrubienie
+            } else if (value === 'Nie') {
+              data.cell.styles.textColor = [220, 38, 38]; // Czerwony (RGB)
+            }
+          }
+        }
       });
     }
 
@@ -270,7 +283,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     : "";
 
   return (
-    <div className="min-h-screen bg-base-200 p-4 md:p-8">
+    <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
       {/* Dynamiczny Nagłówek Tygodniowy */}
       <div className="text-center mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-primary flex justify-center items-center gap-2">
