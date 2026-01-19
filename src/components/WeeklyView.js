@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -36,12 +36,41 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
     const docRef = doc(db, "weeklyData", `${targetUid}_${currentWeekKey}`);
     const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) setWeeklyData(docSnap.data());
-      else setWeeklyData(null);
+      if (docSnap.exists()) {
+        setWeeklyData(docSnap.data());
+      } else if (!isReadOnly) {
+        // Tworzenie nowego dokumentu, jeśli nie istnieje
+        const initialData = {
+          userId: targetUid,
+          weekKey: currentWeekKey,
+          moodStart: 0,
+          energyStart: 0,
+          moodEnd: 0,
+          energyEnd: 0,
+          plannedActivities: DAYS.reduce((acc, day) => ({
+            ...acc, [day]: {
+              activity: "",
+              category: "",
+              status: "nie",
+              moodAfter: 0,
+              energyAfter: 0,
+              moodTracker: {
+                rano: { mood: 0, energy: 0, note: "" },
+                poludnie: { mood: 0, energy: 0, note: "" },
+                wieczor: { mood: 0, energy: 0, note: "" }
+              }
+            }
+          }), {}),
+          summaries: { mostHelpful: "", hardest: "", positiveInfluence: "", nextWeekGoal: "" }
+        };
+        setDoc(docRef, initialData).catch(error => console.error("Błąd tworzenia tygodnia:", error));
+      } else {
+        setWeeklyData(null);
+      }
     });
 
     return () => unsub();
-  }, [db, targetUid, currentWeekKey]);
+  }, [db, targetUid, currentWeekKey, isReadOnly]);
 
   const handleWeeklyUpdate = async (newData, isTopLevel = false) => {
     if (isReadOnly) return;
@@ -68,7 +97,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     });
   };
 
-  // --- FUNKCJA EKSPORTU PDF ---
   const exportWeeklyToPDF = async () => {
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -77,9 +105,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     });
 
     const weekRange = getFullWeekRange(currentWeekKey);
-
-    // 1. Pobieramy WSZYSTKIE aktywności z widoku dziennego dla tego użytkownika
-    // (Pobieramy raz, a potem filtrujemy w pętli dla wydajności)
     let allDailyActivities = [];
     try {
       const q = query(collection(db, "activities"), where("userId", "==", targetUid));
@@ -101,7 +126,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     ];
 
     autoTable(doc, {
-      head: [["Okres", "Nastroj", "Energia"]],
+      head: [["Okres", "Nastroj (srednia)", "Energia (srednia)"]],
       body: metricsData,
       startY: 25,
       theme: 'grid',
@@ -109,7 +134,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       styles: { fontSize: 10, halign: 'center' }
     });
 
-    let finalY = doc.lastAutoTable.finalY + 5;
+    let finalY = doc.lastAutoTable.finalY + 15;
     doc.setFontSize(14);
     doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), 14, finalY);
     finalY += 8;
@@ -134,29 +159,23 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       if (finalY > 180) { doc.addPage(); finalY = 20; }
     });
 
-    // STRONY 2-8: SZCZEGÓŁY DLA KAŻDEGO DNIA
     for (let i = 0; i < DAYS.length; i++) {
       const day = DAYS[i];
       doc.addPage();
       const dateObj = getDateFromWeekKey(currentWeekKey, i);
-      const dateStringPL = dateObj.toLocaleDateString("pl-PL"); // np. 15.01.2024 (do nagłówka)
-
-      // Formatowanie daty do porównania z bazą (YYYY-MM-DD)
+      const dateStringPL = dateObj.toLocaleDateString("pl-PL");
       const yyyy = dateObj.getFullYear();
       const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
       const dd = String(dateObj.getDate()).padStart(2, '0');
       const dateStringISO = `${yyyy}-${mm}-${dd}`;
-
       const dayData = weeklyData?.plannedActivities?.[day] || {};
 
-      // Nagłówek Dnia
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(79, 70, 229);
       doc.text(removePolishAccents(`${day} (${dateStringPL})`), 14, 15);
       doc.setTextColor(0, 0, 0);
 
-      // TABELA 1: Plan Aktywizacji (Główny cel z widoku tygodniowego)
       doc.setFontSize(12);
       doc.text(removePolishAccents("Plan Aktywizacji (Glowny Cel)"), 14, 25);
 
@@ -177,7 +196,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         styles: { fontSize: 10 }
       });
 
-      // TABELA 2: Monitoring Dobowy Nastroju
       let trackerY = doc.lastAutoTable.finalY + 10;
       doc.text(removePolishAccents("Monitoring Dobowy Nastroju"), 14, trackerY);
 
@@ -199,28 +217,14 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         columnStyles: { 3: { cellWidth: 100 } }
       });
 
-      // TABELA 3: Dzienny plan aktywności – CBT (Szczegółowa tabela z Widoku Dziennego)
       let logY = doc.lastAutoTable.finalY + 15;
       doc.text(removePolishAccents("Dzienny plan aktywnosci - CBT"), 14, logY);
 
-      // Filtrowanie i sortowanie aktywności dla danego dnia
       const dailyActivities = allDailyActivities
         .filter(act => act.date === dateStringISO)
         .sort((a, b) => (a.hour || '').localeCompare(b.hour || ''));
 
-      // Kolumny zgodne z MainPage.js
-      const dailyColumns = [
-        "Godzina",
-        "Aktywnosc",
-        "Kontekst",
-        "Przyj. (1-10)",
-        "Skut. (1-10)",
-        "Emocje",
-        "Sila",
-        "Przyj.?",
-        "Uwagi"
-      ];
-
+      const dailyColumns = ["Godzina", "Aktywnosc", "Kontekst", "Przyj. (1-10)", "Skut. (1-10)", "Emocje", "Sila", "Przyj.?", "Uwagi"];
       const dailyRows = dailyActivities.map(act => [
         act.hour,
         removePolishAccents(act.activity || ""),
@@ -242,27 +246,23 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         body: dailyRows,
         startY: logY + 5,
         theme: 'grid',
-        // Stylowanie zgodne z MainPage.js
         headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
         styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: { 8: { cellWidth: 50 } }, // Uwagi węższe, żeby się zmieściło
+        columnStyles: { 8: { cellWidth: 50 } },
         didParseCell: function (data) {
-          // Sprawdzamy czy to sekcja danych (body) i czy to kolumna "Przyj.?" (indeks 7)
           if (data.section === 'body' && data.column.index === 7) {
-            const value = data.cell.raw; // Pobieramy tekst z komórki
-
+            const value = data.cell.raw;
             if (value === 'Tak') {
-              data.cell.styles.textColor = [22, 163, 74]; // Zielony (RGB)
-              data.cell.styles.fontStyle = 'bold';        // Opcjonalnie: pogrubienie
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fontStyle = 'bold';
             } else if (value === 'Nie') {
-              data.cell.styles.textColor = [220, 38, 38]; // Czerwony (RGB)
+              data.cell.styles.textColor = [220, 38, 38];
             }
           }
         }
       });
     }
 
-    // Stopka
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -284,7 +284,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
-      {/* Dynamiczny Nagłówek Tygodniowy */}
+      {/* Nagłówek i Nawigacja */}
       <div className="text-center mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-primary flex justify-center items-center gap-2">
           Tygodniowy plan aktywizacji
@@ -305,8 +305,9 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           Eksportuj Tydzień (PDF)
         </button>
       </div>
-      {/* Dni Tygodnia - Nawigacja */}
-      <div className="tabs tabs-boxed justify-center">
+
+      {/* Zakładki Dni */}
+      <div className="tabs tabs-boxed justify-center mb-6">
         {DAYS.map((day, index) => (
           <button
             key={day}
@@ -318,47 +319,71 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         ))}
       </div>
 
-      {/* Przekazujemy datę do szczegółów dnia */}
+      {/* Szczegóły Wybranego Dnia */}
       <DayPlanDetail
         data={weeklyData?.plannedActivities?.[currentDayName]}
         onSave={handleDayUpdate}
         isReadOnly={isReadOnly}
-        displayDate={currentDayDate} // NOWY PROP
+        displayDate={currentDayDate}
       />
-     
-      <h2 className="text-2xl md:text-3xl font-bold text-secondary my-8 text-center">
-        Podsumowanie Tygodnia
-      </h2>
-      {/* Tabela Nastroju i Energii - Początek tygodnia */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-        <div className="card bg-base-100 shadow p-4">
-          <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10): {weeklyData?.moodStart || 0}</h3>
-          <input
-            type="range" min="0" max="10" className="range range-primary"
-            disabled={isReadOnly}
-            value={weeklyData?.moodStart || 0}
-            onChange={(e) => handleWeeklyUpdate({ moodStart: Number(e.target.value) }, true)}
+
+      {/* --- SEKCJA DOLNA: Wykres i Podsumowania --- */}
+
+      <div className="divider my-8">Analiza i Podsumowanie</div>
+
+      {/* 1. Wykres (Zawsze widoczny) */}
+      <div className="mb-8">
+        <h3 className="text-lg font-bold text-center mb-4 text-base-content/70">Wykres nastroju w trakcie tygodnia</h3>
+        <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
+      </div>
+
+      {/* 2. Sekcja Startowa (Tylko Poniedziałek - Index 0) */}
+      {activeDayIndex === 0 && (
+        <section className="animate-fade-in bg-base-100 p-6 rounded-xl shadow-lg border border-primary/20">
+          <h2 className="text-xl font-bold text-primary mb-6 text-center">
+            Start Tygodnia
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="card bg-base-200/50 p-4">
+              <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10): {weeklyData?.moodStart || 0}</h3>
+              <input
+                type="range" min="0" max="10" className="range range-primary"
+                disabled={isReadOnly}
+                value={weeklyData?.moodStart || 0}
+                onChange={(e) => handleWeeklyUpdate({ moodStart: Number(e.target.value) }, true)}
+              />
+              <div className="w-full flex justify-between text-xs px-2 mt-2 opacity-50">
+                <span>0</span><span>5</span><span>10</span>
+              </div>
+            </div>
+            <div className="card bg-base-200/50 p-4">
+              <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10): {weeklyData?.energyStart || 0}</h3>
+              <input
+                type="range" min="0" max="10" className="range range-secondary"
+                disabled={isReadOnly}
+                value={weeklyData?.energyStart || 0}
+                onChange={(e) => handleWeeklyUpdate({ energyStart: Number(e.target.value) }, true)}
+              />
+              <div className="w-full flex justify-between text-xs px-2 mt-2 opacity-50">
+                <span>0</span><span>5</span><span>10</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. Sekcja Końcowa (Tylko Niedziela - Index 6) */}
+      {activeDayIndex === 6 && (
+        <section className="animate-fade-in">
+          <WeeklySummary
+            summaries={weeklyData?.summaries}
+            moodEnd={weeklyData?.moodEnd}
+            energyEnd={weeklyData?.energyEnd}
+            onUpdate={handleWeeklyUpdate}
+            isReadOnly={isReadOnly}
           />
-        </div>
-        <div className="card bg-base-100 shadow p-4">
-          <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10): {weeklyData?.energyStart || 0}</h3>
-          <input
-            type="range" min="0" max="10" className="range range-secondary"
-            disabled={isReadOnly}
-            value={weeklyData?.energyStart || 0}
-            onChange={(e) => handleWeeklyUpdate({ energyStart: Number(e.target.value) }, true)}
-          />
-        </div>
-      </section>
-      <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
-      {/* Sekcja Podsumowania Tygodnia */}
-      <WeeklySummary
-        summaries={weeklyData?.summaries}
-        moodEnd={weeklyData?.moodEnd}
-        energyEnd={weeklyData?.energyEnd}
-        onUpdate={handleWeeklyUpdate}
-        isReadOnly={isReadOnly}
-      />
+        </section>
+      )}
     </div>
   );
 };
