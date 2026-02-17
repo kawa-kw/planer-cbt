@@ -47,10 +47,12 @@ function MainPage() {
   const [activities, setActivities] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
+
   const [formData, setFormData] = useState({
     hour: '', activity: '', context: '', pleasure: 0, mastery: 0,
-    emotion: '', emotionIntensity: 0, isPleasant: 'Tak', notes: '', userId: ''
+    emotion: '', emotionIntensity: 0, isPleasant: 'Tak', focusState: 'spokój', notes: '', userId: ''
   });
+
   const [isFormExpanded, setIsFormExpanded] = useState(false);
   const auth = getAuth(app);
   const [user, setUser] = useState(null);
@@ -58,15 +60,13 @@ function MainPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [targetUid, setTargetUid] = useState(null);
-  const [activeTab, setActiveTab] = useState("daily"); // "daily" lub "weekly"
+  const [activeTab, setActiveTab] = useState("daily");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-
       const urlParams = new URLSearchParams(window.location.search);
       const viewAsUid = urlParams.get('viewAs');
-
       if (viewAsUid && !currentUser) {
         setIsReadOnly(true);
         setTargetUid(viewAsUid);
@@ -81,40 +81,24 @@ function MainPage() {
   }, [auth]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, [auth]);
-
-  useEffect(() => {
-    // Jeśli nie mamy zidentyfikowanego użytkownika (nasz UID lub viewAs), nie robimy zapytania
     if (!targetUid) {
       setActivities([]);
       return;
     }
-
-    // Tworzymy zapytanie ograniczające dane do konkretnego użytkownika I konkretnej daty
     const q = query(
       collection(db, "activities"),
       where("userId", "==", targetUid),
       where("date", "==", selectedDate)
     );
-
-    // Nasłuchiwanie zmian w czasie rzeczywistym tylko dla tego konkretnego zestawu danych
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const data = querySnapshot.docs.map(doc => ({
         ...doc.data(),
         id: doc.id
       }));
-      // Sortowanie lokalne po godzinie dla lepszego UX
       setActivities(data.sort((a, b) => a.hour.localeCompare(b.hour)));
-      console.log(`Pobrano ${data.length} wpisów dla dnia: ${selectedDate}`);
     }, (error) => {
       console.error("Błąd pobierania danych:", error);
     });
-
-    // Czyścimy subskrypcję przy zmianie daty lub użytkownika
     return () => unsubscribe();
   }, [selectedDate, targetUid]);
 
@@ -130,14 +114,10 @@ function MainPage() {
       return;
     }
     sendPasswordResetEmail(auth, loginEmail)
-      .then(() => {
-        alert("Link do resetowania hasła został wysłany na Twój adres e-mail. Sprawdź skrzynkę (również folder SPAM).");
-      })
-      .catch((error) => {
-        alert("Błąd resetowania hasła: " + error.message);
-      });
+      .then(() => alert("Link do resetowania hasła został wysłany na Twój adres e-mail."))
+      .catch((error) => alert("Błąd resetowania hasła: " + error.message));
   };
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -160,41 +140,23 @@ function MainPage() {
       } else {
         await addDoc(collection(db, "activities"), payload);
       }
-      setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', notes: '', userId: '' });
+      setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', focusState: 'spokój', notes: '', userId: '' });
     } catch (err) { alert(err); }
   };
 
   const startEdit = (act) => {
     setEditingId(act.id);
-    setFormData({ ...act });
+    setFormData({ ...act, focusState: act.focusState || 'spokój' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const exportToPDF = () => {
-    const doc = new jsPDF({
-      orientation: 'landscape',
-      unit: 'mm',
-      format: 'a4'
-    });
-
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const title = removePolishAccents("Dzienny plan aktywnosci - nurt CBT");
-    doc.setFontSize(16);
-    doc.text(title, 14, 15);
-    doc.setFontSize(11);
-    doc.text(`Data: ${selectedDate}`, 14, 22);
+    doc.setFontSize(16); doc.text(title, 14, 15);
+    doc.setFontSize(11); doc.text(`Data: ${selectedDate}`, 14, 22);
 
-    const tableColumn = [
-      "Godzina",
-      "Aktywnosc",
-      "Kontekst",
-      "Przyj. (1-10)",
-      "Skut. (1-10)",
-      "Emocje",
-      "Sila",
-      "Przyj.?",
-      "Uwagi"
-    ];
-
+    const tableColumn = ["Godzina", "Aktywnosc", "Kontekst", "Przyj.", "Skut.", "Emocje", "Sila", "Przyj.?", "Skupienie", "Uwagi"];
     const tableRows = activities.map(act => [
       act.hour,
       removePolishAccents(act.activity),
@@ -204,6 +166,7 @@ function MainPage() {
       removePolishAccents(act.emotion),
       act.emotionIntensity,
       act.isPleasant,
+      removePolishAccents(act.focusState || "spokoj"),
       removePolishAccents(act.notes)
     ]);
 
@@ -211,25 +174,75 @@ function MainPage() {
       head: [tableColumn],
       body: tableRows,
       startY: 30,
-      styles: {
-        fontSize: 9,
-        font: "helvetica",
-        cellPadding: 3
-      },
-      headStyles: {
-        fillColor: [79, 70, 229],
-        textColor: [255, 255, 255]
-      },
-      columnStyles: {
-        8: { cellWidth: 60 }
+      styles: { fontSize: 8, font: "helvetica", cellPadding: 2 },
+      headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+      columnStyles: { 9: { cellWidth: 40 } },
+      didParseCell: function (data) {
+        if (data.section === 'body') {
+          if (data.column.index === 7) {
+            const val = data.cell.raw;
+            if (val === 'Tak') { data.cell.styles.textColor = [22, 163, 74]; data.cell.styles.fontStyle = 'bold'; }
+            else if (val === 'Nie') { data.cell.styles.textColor = [220, 38, 38]; }
+          }
+          if (data.column.index === 8) {
+            const val = data.cell.raw;
+            if (val === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
+            else if (val === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
+            else { data.cell.styles.textColor = [22, 163, 74]; }
+          }
+        }
       }
     });
+
+    let mapY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+    doc.text("Mapa skupienia w ciagu dnia:", 14, mapY);
+    let currentX = 14;
+
+    activities.forEach(act => {
+      if (currentX > 270) { currentX = 14; mapY += 15; }
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      doc.text(act.hour, currentX, mapY + 5);
+
+      const state = act.focusState || 'spokój';
+      let letter = 'OK';
+      if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'H'; }
+      else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
+      else { doc.setFillColor(34, 197, 94); letter = 'OK'; }
+
+      doc.rect(currentX, mapY + 7, 10, 5, 'F');
+
+      // Tekst wewnątrz kwadratu (H / OK / F)
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text(letter, currentX + 5, mapY + 10.5, { align: 'center' });
+
+      currentX += 14;
+    });
+
+    // Legenda z literami
+    mapY += 18;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+
+    doc.setFillColor(251, 191, 36); doc.rect(14, mapY, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, mapY + 3.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, mapY + 3.5);
+
+    doc.setFillColor(34, 197, 94); doc.rect(36, mapY, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, mapY + 3.5);
+
+    doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("F", 62.5, mapY + 3.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Hiperfokus", 67, mapY + 3.5);
 
     doc.save(`plan-cbt-${selectedDate}.pdf`);
   };
 
   const shareLink = `${window.location.origin}${window.location.pathname}?viewAs=${user?.uid}`;
-
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
     alert("Link do podglądu skopiowany! Możesz go wysłać osobie trzeciej.");
@@ -252,10 +265,7 @@ function MainPage() {
               <label className="label"><span className="label-text">Hasło</span></label>
               <input type="password" onChange={(e) => setLoginPassword(e.target.value)} className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" required />
               <label className="label">
-                <span
-                  onClick={handlePasswordReset}
-                  className="label-text-alt link link-hover text-primary cursor-pointer"
-                >
+                <span onClick={handlePasswordReset} className="label-text-alt link link-hover text-primary cursor-pointer">
                   Zapomniałeś hasła?
                 </span>
               </label>
@@ -270,206 +280,219 @@ function MainPage() {
   return (
     <>
       <div className="tabs tab-bordered justify-center py-2">
-        <button className={`tab ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`}
-          onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
-        <button className={`tab ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`}
-          onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
-        {!isReadOnly && <button
-          className={`tab ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`}
-          onClick={() => setActiveTab('notes')}
-        >Notatki</button>}
+        <button className={`tab ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
+        <button className={`tab ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
+        {!isReadOnly && <button className={`tab ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
       </div>
 
-    {activeTab === "daily" && (
-      <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
-        <div className="max-w-[1800px] mx-auto">
-          <header className="mb-8 lg:mb-0 text-center relative">
-            <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
-            <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
-            {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
-            <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
-              {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>
-                Share Link
-              </button>}
-              <button
-                onClick={exportToPDF}
-                className="btn btn-outline btn-accent btn-sm"
-                disabled={activities.length === 0}
-              >
-                Pobierz PDF z {selectedDate}
+      {activeTab === "daily" && (
+        <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
+          <div className="max-w-[1800px] mx-auto">
+            <header className="mb-8 lg:mb-0 text-center relative">
+              <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
+              <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
+              {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
+              <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
+                {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>Share Link</button>}
+                <button onClick={exportToPDF} className="btn btn-outline btn-accent btn-sm" disabled={activities.length === 0}>Pobierz PDF z {selectedDate}</button>
+              </div>
+            </header>
+            <div className="flex gap-4 items-center mb-4">
+              <button className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center relative z-10" onClick={() => setIsFormExpanded(!isFormExpanded)}>
+                <AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
+                {isReadOnly ? 'Wybierz datę' : isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
+                <span className="badge badge-info font-bold">{selectedDate}</span>
               </button>
             </div>
-          </header>
-          <div className="flex gap-4 items-center mb-4">
-            <button
-              className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center relative z-10"
-              onClick={() => setIsFormExpanded(!isFormExpanded)}><AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
-              {isReadOnly ? 'Wybierz datę' : isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
-              <span className="badge badge-info font-bold">{selectedDate}</span>
-            </button>
-          </div>
-          <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
-            <div className={`lg:col-span-2 space-y-6 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
-              <div className="relative card bg-base-100 shadow-xl p-6">
-                <h2 className="card-title mb-4">Wybierz datę</h2>
-                <input
-                  type="date"
-                  className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
+            <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
+              <div className={`lg:col-span-2 space-y-6 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
+                <div className="relative card bg-base-100 shadow-xl p-6">
+                  <h2 className="card-title mb-4">Wybierz datę</h2>
+                  <input type="date" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+                </div>
+
+                <div className={`${isReadOnly ? 'hidden lg:block' : ''} card bg-base-100 shadow-xl p-6`}>
+                  <h2 className="card-title mb-4">{editingId ? "Edytuj wpis" : "Nowa aktywność"}</h2>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="form-control">
+                      <label className="label text-xs font-bold uppercase">Godzina</label>
+                      <input name="hour" type="time" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.hour} onChange={handleChange} required />
+                    </div>
+                    <div className="form-control">
+                      <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.activity} onChange={handleChange} required />
+                    </div>
+                    <div className="form-control">
+                      <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.context} onChange={handleChange} />
+                    </div>
+
+                    <div className="form-control bg-base-200/50 p-3 rounded-xl border border-base-300">
+                      <label className="label pb-1"><span className="label-text font-bold">Stan skupienia (ADHD)</span></label>
+                      <div className="flex flex-col gap-2 mt-2">
+                        <label className="cursor-pointer flex items-center gap-3">
+                          <input type="radio" name="focusState" value="chaos" className="radio radio-warning radio-sm" checked={formData.focusState === 'chaos'} onChange={handleChange} />
+                          <span className="label-text text-warning font-semibold">Duży chaos / Rozproszenie</span>
+                        </label>
+                        <label className="cursor-pointer flex items-center gap-3">
+                          <input type="radio" name="focusState" value="spokój" className="radio radio-success radio-sm" checked={formData.focusState === 'spokój'} onChange={handleChange} />
+                          <span className="label-text text-success font-semibold">Spokój / Balans</span>
+                        </label>
+                        <label className="cursor-pointer flex items-center gap-3">
+                          <input type="radio" name="focusState" value="hiperfokus" className="radio radio-primary radio-sm" checked={formData.focusState === 'hiperfokus'} onChange={handleChange} />
+                          <span className="label-text text-primary font-semibold">Hiperfokus</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label"><span className="label-text">Przyjemność: {formData.pleasure} </span></label>
+                      <input name="pleasure" type="range" min="1" max="10" className="range range-primary range-sm" value={formData.pleasure} onChange={handleChange} />
+                    </div>
+                    <div className="form-control">
+                      <label className="label"><span className="label-text">Skuteczność (Mastery): {formData.mastery} </span></label>
+                      <input name="mastery" type="range" min="1" max="10" className="range range-secondary range-sm" value={formData.mastery} onChange={handleChange} />
+                    </div>
+                    <div className="form-control">
+                      <input name="emotion" placeholder="Emocje (np. lęk, radość)" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.emotion} onChange={handleChange} />
+                    </div>
+                    <div className="form-control">
+                      <label className="label"><span className="label-text">Nasilenie emocji: {formData.emotionIntensity} </span></label>
+                      <input name="emotionIntensity" type="range" min="1" max="10" className="range range-accent range-sm" value={formData.emotionIntensity} onChange={handleChange} />
+                    </div>
+                    <select name="isPleasant" className="select select-bordered w-full" value={formData.isPleasant} onChange={handleChange}>
+                      <option value="Nie">Czy przyjemna? Nie</option>
+                      <option value="Tak">Czy przyjemna? Tak</option>
+                    </select>
+                    <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug focus:border-accent focus:ring-1 focus:ring-accent" value={formData.notes} onChange={handleChange} />
+                    <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>{editingId ? "Zapisz zmiany" : "Dodaj wpis"}</button>
+                    {editingId && (
+                      <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', focusState: 'spokój', notes: '' }); }}>
+                        Anuluj
+                      </button>
+                    )}
+                  </form>
+                </div>
               </div>
 
-              <div className={`${isReadOnly ? 'hidden lg:block' : ''} card bg-base-100 shadow-xl p-6`}>
-                <h2 className="card-title mb-4">{editingId ? "Edytuj wpis" : "Nowa aktywność"}</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="form-control">
-                    <label className="label text-xs font-bold uppercase">Godzina</label>
-                    <input name="hour" type="time" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.hour} onChange={handleChange} required />
-                  </div>
-
-                  <div className="form-control">
-                    <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.activity} onChange={handleChange} required />
-                  </div>
-
-                  <div className="form-control">
-                    <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.context} onChange={handleChange} />
-                  </div>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Przyjemność: {formData.pleasure} </span>
-                    </label>
-                    <input name="pleasure" type="range" min="1" max="10" className="range range-primary range-sm" value={formData.pleasure} onChange={handleChange} />
-                  </div>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Skuteczność (Mastery): {formData.mastery} </span>
-                    </label>
-                    <input name="mastery" type="range" min="1" max="10" className="range range-secondary range-sm" value={formData.mastery} onChange={handleChange} />
-                  </div>
-
-                  <div className="form-control">
-                    <input name="emotion" placeholder="Emocje (np. lęk, radość)" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.emotion} onChange={handleChange} />
-                  </div>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Nasilenie emocji: {formData.emotionIntensity} </span>
-                    </label>
-                    <input name="emotionIntensity" type="range" min="1" max="10" className="range range-accent range-sm" value={formData.emotionIntensity} onChange={handleChange} />
-                  </div>
-
-                  <select name="isPleasant" className="select select-bordered w-full" value={formData.isPleasant} onChange={handleChange}>
-                    <option value="Nie">Czy przyjemna? Nie</option>
-                    <option value="Tak">Czy przyjemna? Tak</option>
-                  </select>
-
-                  <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug focus:border-accent focus:ring-1 focus:ring-accent" value={formData.notes} onChange={handleChange} />
-
-                  <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>
-                    {editingId ? "Zapisz zmiany" : "Dodaj wpis"}
-                  </button>
-                  {editingId && (
-                    <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', notes: '' }); }}>
-                      Anuluj
-                    </button>
-                  )}
-                </form>
-              </div>
-            </div>
-
-            <div className={`${isFormExpanded ? 'lg:col-span-4' : 'lg:col-span-6'} transition-all duration-300 ease-in-out relative`}>
-              <div className="card bg-base-100 shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="table table-zebra w-full">
-                    <thead className="bg-base-300">
-                      <tr>
-                        <th className="!relative">Godzina</th>
-                        <th className="min-w-[300px] max-w-[400px]">Aktywność / Kontekst</th>
-                        <th className="text-center">P / M </th>
-                        <th>Emocje</th>
-                        <th>Przyjemna?</th>
-                        <th className="min-w-[300px] max-w-[400px]">Uwagi</th>
-                        <th>Akcje</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activities.length > 0 ? activities.map(act => (
-                        <tr key={act.id} className="hover">
-                          <td className="font-bold">{act.hour}</td>
-                          <td className="min-w-[300px] max-w-[400px]">
-                            <div className="font-bold whitespace-normal">{act.activity}</div>
-                            <div className="text-xs opacity-50">{act.context}</div>
-                          </td>
-                          <td className="text-center">
-                            <div className="tooltip badge badge-primary badge-outline mr-2" data-tip="Przyjemność">{act.pleasure}</div>
-                            <div className="tooltip badge badge-secondary badge-outline" data-tip="Skuteczność/Mastery">{act.mastery}</div>
-                          </td>
-                          <td className="max-w-xs truncate text-xs">
-                            <span className="tooltip badge badge-accent badge-outline mr-2" data-tip="Nasilenie emocji">{act.emotionIntensity}</span> {act.emotion}
-                          </td>
-                          <td>
-                            <span className={`badge badge-outline ${act.isPleasant === 'Tak' ? 'badge-success' : 'badge-error'}`}>{act.isPleasant}</span>
-                          </td>
-                          <td className="text-xs italic opacity-70 whitespace-normal min-w-[300px] max-w-[400px]">{act.notes}</td>
-                          <td className="space-x-2">
-                            <button className="btn btn-ghost btn-xs text-info" disabled={isReadOnly} onClick={() => startEdit(act)}>Edytuj</button>
-                            <button className="btn btn-ghost btn-xs text-error" disabled={isReadOnly} onClick={() => deleteDoc(doc(db, "activities", act.id))}>Usuń</button>
-                          </td>
+              <div className={`${isFormExpanded ? 'lg:col-span-4' : 'lg:col-span-6'} transition-all duration-300 ease-in-out relative`}>
+                <div className="card bg-base-100 shadow-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra w-full text-sm">
+                      <thead className="bg-base-300">
+                        <tr>
+                          <th className="!relative">Godzina</th>
+                          <th className="min-w-[200px] max-w-[300px]">Aktywność / Kontekst</th>
+                          <th className="text-center">P / M </th>
+                          <th>Emocje</th>
+                          <th>Skupienie</th>
+                          <th>Przyjemna?</th>
+                          <th className="min-w-[200px] max-w-[300px]">Uwagi</th>
+                          <th>Akcje</th>
                         </tr>
-                      )) : (
-                        <tr><td colSpan="6" className="text-center py-10 opacity-50">Brak aktywności dla wybranej daty.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {activities.length > 0 ? activities.map(act => (
+                          <tr key={act.id} className="hover">
+                            <td className="font-bold">{act.hour}</td>
+                            <td className="min-w-[200px] max-w-[300px]">
+                              <div className="font-bold whitespace-normal">{act.activity}</div>
+                              <div className="text-xs opacity-50">{act.context}</div>
+                            </td>
+                            <td className="text-center">
+                              <div className="tooltip badge badge-primary badge-outline mr-1" data-tip="Przyjemność">{act.pleasure}</div>
+                              <div className="tooltip badge badge-secondary badge-outline" data-tip="Skuteczność/Mastery">{act.mastery}</div>
+                            </td>
+                            <td className="max-w-xs truncate text-xs">
+                              <span className="tooltip badge badge-accent badge-outline mr-1" data-tip="Nasilenie emocji">{act.emotionIntensity}</span> {act.emotion}
+                            </td>
+                            <td>
+                              {act.focusState === 'chaos' && <span className="badge badge-warning badge-sm font-bold">Chaos</span>}
+                              {(act.focusState === 'spokój' || !act.focusState) && <span className="badge badge-success badge-sm text-white font-bold">Spokój</span>}
+                              {act.focusState === 'hiperfokus' && <span className="badge badge-primary badge-sm text-white font-bold">Hiperfokus</span>}
+                            </td>
+                            <td>
+                              <span className={`badge badge-outline ${act.isPleasant === 'Tak' ? 'badge-success' : 'badge-error'}`}>{act.isPleasant}</span>
+                            </td>
+                            <td className="text-xs italic opacity-70 whitespace-normal min-w-[200px] max-w-[300px]">{act.notes}</td>
+                            <td className="space-x-1 flex flex-col gap-1">
+                              <button className="btn btn-ghost btn-xs text-info" disabled={isReadOnly} onClick={() => startEdit(act)}>Edytuj</button>
+                              <button className="btn btn-ghost btn-xs text-error" disabled={isReadOnly} onClick={() => deleteDoc(doc(db, "activities", act.id))}>Usuń</button>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="8" className="text-center py-10 opacity-50">Brak aktywności dla wybranej daty.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {activities.length > 0 && (
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="alert alert-info shadow-lg">
+                      <div>
+                        <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>
+                        <div className="text-sm font-medium">
+                          {activities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="alert alert-success shadow-lg text-success-content">
+                      <div>
+                        <h3 className="font-bold">Największa przyjemność dziś:</h3>
+                        <div className="text-sm font-medium">
+                          {activities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MAPA SKUPIENIA W APLIKACJI (Z literami) */}
+                {activities.length > 0 && (
+                  <div className="card bg-base-100 shadow-xl p-6 mt-8 border-t-4 rounded-t-none border-primary">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Mapa Skupienia (ADHD)
+                    </h3>
+                    <div className="flex flex-wrap gap-3 items-end">
+                      {activities.map(act => {
+                        let bgColor = "bg-success";
+                        let letter = "OK";
+                        if (act.focusState === 'chaos') { bgColor = "bg-warning"; letter = "CH"; }
+                        if (act.focusState === 'hiperfokus') { bgColor = "bg-primary"; letter = "F"; }
+
+                        return (
+                          <div key={act.id} className="flex flex-col items-center gap-1 group cursor-pointer">
+                            <span className="text-[10px] font-mono opacity-50 group-hover:opacity-100 transition-opacity">{act.hour}</span>
+                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} transition-transform hover:scale-110 flex items-center justify-center text-white text-xs font-bold`} data-tip={`${act.activity}`}>
+                              {letter}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-6 mt-6 pt-4 border-t border-base-200 text-sm opacity-80 font-semibold">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-warning rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">H</div> Chaos
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-success rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">OK</div> Spokój
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-primary rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">F</div> Hiperfokus
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {activities.length > 0 && (
-                <div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="alert alert-info shadow-lg">
-                    <div>
-                      <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>
-                      <div className="text-sm font-medium">
-                        {activities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="alert alert-success shadow-lg text-success-content">
-                    <div>
-                      <h3 className="font-bold">Największa przyjemność dziś:</h3>
-                      <div className="text-sm font-medium">
-                        {activities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-
           </div>
         </div>
-      </div>
-    )}
-    {activeTab === 'weekly' && (
-      <WeeklyView
-        db={db}
-        user={user}
-        targetUid={targetUid}
-        isReadOnly={isReadOnly}
-        initialDate={selectedDate}
-      />
-    )}
-    {!isReadOnly && activeTab === 'notes' && (
-      <NotesView 
-        db={db} 
-        targetUid={targetUid} // lub user.uid w zależności jak przekazujesz ID
-        isReadOnly={isReadOnly}
-      />
-    )}
-  </>
-);}
+      )}
+      {activeTab === 'weekly' && <WeeklyView db={db} user={user} targetUid={targetUid} isReadOnly={isReadOnly} initialDate={selectedDate} />}
+      {!isReadOnly && activeTab === 'notes' && <NotesView db={db} targetUid={targetUid} isReadOnly={isReadOnly} />}
+    </>
+  );
+}
 
 export default MainPage;

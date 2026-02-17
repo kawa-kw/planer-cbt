@@ -39,7 +39,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       if (docSnap.exists()) {
         setWeeklyData(docSnap.data());
       } else if (!isReadOnly) {
-        // Tworzenie nowego dokumentu, jeśli nie istnieje
         const initialData = {
           userId: targetUid,
           weekKey: currentWeekKey,
@@ -156,8 +155,79 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       const splitText = doc.splitTextToSize(removePolishAccents(item.value || "- brak wpisu -"), 260);
       doc.text(splitText, 14, finalY);
       finalY += (splitText.length * 5) + 8;
-      if (finalY > 180) { doc.addPage(); finalY = 20; }
+      // Przeniesienie na nową stronę jeśli brakuje miejsca
+      if (finalY > 150) { doc.addPage(); finalY = 20; }
     });
+
+    // --- TYGODNIOWA MAPA SKUPIENIA Z LITERAMI ---
+    if (finalY > 130) { doc.addPage(); finalY = 20; }
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(removePolishAccents("Tygodniowa Mapa Skupienia (ADHD)"), 14, finalY);
+    finalY += 6;
+
+    const hours = Array.from({ length: 16 }, (_, i) => String(i + 7).padStart(2, '0'));
+    const mapHeadRow = ["Dzien", ...hours];
+
+    const mapRows = DAYS.map((day, index) => {
+      const dateObj = getDateFromWeekKey(currentWeekKey, index);
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const dateStringISO = `${yyyy}-${mm}-${dd}`;
+      const dailyActs = allDailyActivities.filter(act => act.date === dateStringISO);
+
+      const row = [removePolishAccents(day)];
+
+      hours.forEach(h => {
+        const actInHour = dailyActs.find(act => act.hour && act.hour.startsWith(`${h}:`));
+        if (actInHour) {
+          const state = actInHour.focusState || 'spokój';
+          // Dodano litery (content) do komórek
+          if (state === 'chaos') {
+            row.push({ content: 'H', styles: { fillColor: [251, 191, 36], textColor: [255, 255, 255], fontStyle: 'bold' } });
+          } else if (state === 'hiperfokus') {
+            row.push({ content: 'F', styles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' } });
+          } else {
+            row.push({ content: 'OK', styles: { fillColor: [34, 197, 94], textColor: [255, 255, 255], fontStyle: 'bold' } });
+          }
+        } else {
+          row.push({ content: '', styles: { fillColor: [245, 245, 245] } });
+        }
+      });
+      return row;
+    });
+
+    autoTable(doc, {
+      head: [mapHeadRow],
+      body: mapRows,
+      startY: finalY,
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], halign: 'center', fontSize: 8 },
+      styles: { fontSize: 8, cellPadding: 1, minCellHeight: 7, halign: 'center', valign: 'middle' },
+      columnStyles: {
+        0: { cellWidth: 30, halign: 'left', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: [0, 0, 0] }
+      }
+    });
+
+    // Legenda do tygodniowej mapy
+    let legendY = doc.lastAutoTable.finalY + 5;
+
+    doc.setFillColor(251, 191, 36); doc.rect(14, legendY, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, legendY + 3.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, legendY + 3.5);
+
+    doc.setFillColor(34, 197, 94); doc.rect(36, legendY, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, legendY + 3.5);
+
+    doc.setFillColor(147, 51, 234); doc.rect(60, legendY, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("F", 62.5, legendY + 3.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Hiperfokus", 67, legendY + 3.5);
+
+    doc.setFillColor(245, 245, 245); doc.rect(88, legendY, 5, 5, 'F'); doc.text("Brak wpisu", 95, legendY + 3.5);
+    // ------------------------------------------------------------------
 
     for (let i = 0; i < DAYS.length; i++) {
       const day = DAYS[i];
@@ -217,14 +287,64 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         columnStyles: { 3: { cellWidth: 100 } }
       });
 
-      let logY = doc.lastAutoTable.finalY + 15;
-      doc.text(removePolishAccents("Dzienny plan aktywnosci - CBT"), 14, logY);
-
       const dailyActivities = allDailyActivities
         .filter(act => act.date === dateStringISO)
         .sort((a, b) => (a.hour || '').localeCompare(b.hour || ''));
 
-      const dailyColumns = ["Godzina", "Aktywnosc", "Kontekst", "Przyj. (1-10)", "Skut. (1-10)", "Emocje", "Sila", "Przyj.?", "Uwagi"];
+      let dynamicY = doc.lastAutoTable.finalY + 15;
+
+      if (dailyActivities.length > 0) {
+        doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+        doc.text(removePolishAccents("Mapa skupienia w ciagu dnia (ADHD):"), 14, dynamicY);
+        let currentX = 14;
+        let mapY = dynamicY;
+
+        dailyActivities.forEach(act => {
+          if (currentX > 270) { currentX = 14; mapY += 15; }
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text(act.hour, currentX, mapY + 5);
+
+          const state = act.focusState || 'spokój';
+          let letter = 'OK';
+          if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'H'; }
+          else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
+          else { doc.setFillColor(34, 197, 94); letter = 'OK'; }
+
+          doc.rect(currentX, mapY + 7, 10, 5, 'F');
+
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "bold");
+          doc.text(letter, currentX + 5, mapY + 10.5, { align: 'center' });
+
+          currentX += 14;
+        });
+
+        // Legenda mapy dziennej (z literami)
+        mapY += 18;
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+
+        doc.setFillColor(251, 191, 36); doc.rect(14, mapY, 5, 5, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, mapY + 3.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, mapY + 3.5);
+
+        doc.setFillColor(34, 197, 94); doc.rect(36, mapY, 5, 5, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, mapY + 3.5);
+
+        doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("F", 62.5, mapY + 3.5, { align: 'center' });
+        doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Hiperfokus", 67, mapY + 3.5);
+
+        dynamicY = mapY + 15;
+      }
+
+      doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+      doc.text(removePolishAccents("Dzienny plan aktywnosci - CBT"), 14, dynamicY);
+
+      const dailyColumns = ["Godzina", "Aktywnosc", "Kontekst", "Przyj.", "Skut.", "Emocje", "Sila", "Przyj.?", "Skupienie", "Uwagi"];
       const dailyRows = dailyActivities.map(act => [
         act.hour,
         removePolishAccents(act.activity || ""),
@@ -234,29 +354,34 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         removePolishAccents(act.emotion || ""),
         act.emotionIntensity,
         act.isPleasant,
+        removePolishAccents(act.focusState || "spokoj"),
         removePolishAccents(act.notes || "")
       ]);
 
       if (dailyRows.length === 0) {
-        dailyRows.push(["-", "Brak wpisow w widoku dziennym", "-", "-", "-", "-", "-", "-", "-"]);
+        dailyRows.push(["-", "Brak wpisow w widoku dziennym", "-", "-", "-", "-", "-", "-", "-", "-"]);
       }
 
       autoTable(doc, {
         head: [dailyColumns],
         body: dailyRows,
-        startY: logY + 5,
+        startY: dynamicY + 5,
         theme: 'grid',
         headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
-        styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: { 8: { cellWidth: 50 } },
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: { 9: { cellWidth: 40 } },
         didParseCell: function (data) {
-          if (data.section === 'body' && data.column.index === 7) {
-            const value = data.cell.raw;
-            if (value === 'Tak') {
-              data.cell.styles.textColor = [22, 163, 74];
-              data.cell.styles.fontStyle = 'bold';
-            } else if (value === 'Nie') {
-              data.cell.styles.textColor = [220, 38, 38];
+          if (data.section === 'body') {
+            if (data.column.index === 7) {
+              const value = data.cell.raw;
+              if (value === 'Tak') { data.cell.styles.textColor = [22, 163, 74]; data.cell.styles.fontStyle = 'bold'; }
+              else if (value === 'Nie') { data.cell.styles.textColor = [220, 38, 38]; }
+            }
+            if (data.column.index === 8) {
+              const value = data.cell.raw;
+              if (value === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
+              else if (value === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
+              else { data.cell.styles.textColor = [22, 163, 74]; }
             }
           }
         }
@@ -284,7 +409,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
-      {/* Nagłówek i Nawigacja */}
       <div className="text-center mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-primary flex justify-center items-center gap-2">
           Tygodniowy plan aktywizacji
@@ -306,7 +430,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         </button>
       </div>
 
-      {/* Zakładki Dni */}
       <div className="tabs tabs-boxed justify-center mb-6">
         {DAYS.map((day, index) => (
           <button
@@ -319,7 +442,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         ))}
       </div>
 
-      {/* Szczegóły Wybranego Dnia */}
       <DayPlanDetail
         data={weeklyData?.plannedActivities?.[currentDayName]}
         onSave={handleDayUpdate}
@@ -327,17 +449,13 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         displayDate={currentDayDate}
       />
 
-      {/* --- SEKCJA DOLNA: Wykres i Podsumowania --- */}
-
       <div className="divider my-8">Analiza i Podsumowanie</div>
 
-      {/* 1. Wykres (Zawsze widoczny) */}
       <div className="mb-8">
         <h3 className="text-lg font-bold text-center mb-4 text-base-content/70">Wykres nastroju w trakcie tygodnia</h3>
         <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
       </div>
 
-      {/* 2. Sekcja Startowa (Tylko Poniedziałek - Index 0) */}
       {activeDayIndex === 0 && (
         <section className="animate-fade-in bg-base-100 p-6 rounded-xl shadow-lg border border-primary/20">
           <h2 className="text-xl font-bold text-primary mb-6 text-center">
@@ -372,7 +490,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         </section>
       )}
 
-      {/* 3. Sekcja Końcowa (Tylko Niedziela - Index 6) */}
       {activeDayIndex === 6 && (
         <section className="animate-fade-in">
           <WeeklySummary
