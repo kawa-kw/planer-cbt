@@ -148,6 +148,7 @@ function MainPage() {
     setEditingId(act.id);
     setFormData({ ...act, focusState: act.focusState || 'spokój' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsFormExpanded(true); // Automatycznie rozwija formularz przy edycji z mapy
   };
 
   const exportToPDF = () => {
@@ -157,18 +158,26 @@ function MainPage() {
     doc.setFontSize(11); doc.text(`Data: ${selectedDate}`, 14, 22);
 
     const tableColumn = ["Godzina", "Aktywnosc", "Kontekst", "Przyj.", "Skut.", "Emocje", "Sila", "Przyj.?", "Skupienie", "Uwagi"];
-    const tableRows = activities.map(act => [
-      act.hour,
-      removePolishAccents(act.activity),
-      removePolishAccents(act.context),
-      act.pleasure,
-      act.mastery,
-      removePolishAccents(act.emotion),
-      act.emotionIntensity,
-      act.isPleasant,
-      removePolishAccents(act.focusState || "spokoj"),
-      removePolishAccents(act.notes)
-    ]);
+
+    // Tabela w PDF zawiera tylko pełne wpisy (z nazwą aktywności)
+    const tableRows = activities
+      .filter(act => act.activity && act.activity.trim() !== '')
+      .map(act => [
+        act.hour,
+        removePolishAccents(act.activity),
+        removePolishAccents(act.context),
+        act.pleasure,
+        act.mastery,
+        removePolishAccents(act.emotion),
+        act.emotionIntensity,
+        act.isPleasant,
+        removePolishAccents(act.focusState || "spokoj"),
+        removePolishAccents(act.notes)
+      ]);
+
+    if (tableRows.length === 0) {
+      tableRows.push(["-", "Brak pelnych wpisow", "-", "-", "-", "-", "-", "-", "-", "-"]);
+    }
 
     autoTable(doc, {
       head: [tableColumn],
@@ -188,7 +197,7 @@ function MainPage() {
             const val = data.cell.raw;
             if (val === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
             else if (val === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-            else { data.cell.styles.textColor = [22, 163, 74]; }
+            else if (val !== '-') { data.cell.styles.textColor = [22, 163, 74]; }
           }
         }
       }
@@ -196,9 +205,10 @@ function MainPage() {
 
     let mapY = doc.lastAutoTable.finalY + 15;
     doc.setFontSize(12); doc.setTextColor(0, 0, 0);
-    doc.text("Mapa skupienia w ciagu dnia:", 14, mapY);
+    doc.text("Mapa skupienia w ciagu dnia (wszystkie wpisy):", 14, mapY);
     let currentX = 14;
 
+    // Mapa w PDF zawiera wszystkie wpisy (także te tylko ze stanem skupienia)
     activities.forEach(act => {
       if (currentX > 270) { currentX = 14; mapY += 15; }
       doc.setFontSize(8);
@@ -213,7 +223,6 @@ function MainPage() {
 
       doc.rect(currentX, mapY + 7, 10, 5, 'F');
 
-      // Tekst wewnątrz kwadratu (H / OK / F)
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
@@ -222,7 +231,6 @@ function MainPage() {
       currentX += 14;
     });
 
-    // Legenda z literami
     mapY += 18;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
@@ -250,6 +258,9 @@ function MainPage() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const hasViewParam = urlParams.has('viewAs');
+
+  // Filtrujemy pełne aktywności do widoku tabeli i podsumowań
+  const fullActivities = activities.filter(act => act.activity && act.activity.trim() !== '');
 
   if (!user && !hasViewParam) {
     return (
@@ -290,7 +301,7 @@ function MainPage() {
           <div className="max-w-[1800px] mx-auto">
             <header className="mb-8 lg:mb-0 text-center relative">
               <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
-              <p className="text-base-content/70">Wypełniaj plan na bieżąco lub po zakończeniu aktywności.</p>
+              <p className="text-base-content/70">Wypełniaj plan na bieżąco lub zaznacz sam stan skupienia.</p>
               {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
               <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
                 {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>Share Link</button>}
@@ -312,19 +323,14 @@ function MainPage() {
                 </div>
 
                 <div className={`${isReadOnly ? 'hidden lg:block' : ''} card bg-base-100 shadow-xl p-6`}>
-                  <h2 className="card-title mb-4">{editingId ? "Edytuj wpis" : "Nowa aktywność"}</h2>
+                  <h2 className="card-title mb-4">{editingId ? "Edytuj wpis" : "Nowa aktywność / Skupienie"}</h2>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="form-control">
-                      <label className="label text-xs font-bold uppercase">Godzina</label>
+                      <label className="label text-xs font-bold uppercase">Godzina (wymagane)</label>
                       <input name="hour" type="time" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.hour} onChange={handleChange} required />
                     </div>
-                    <div className="form-control">
-                      <input name="activity" placeholder="Co dokładnie robisz?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.activity} onChange={handleChange} required />
-                    </div>
-                    <div className="form-control">
-                      <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.context} onChange={handleChange} />
-                    </div>
 
+                    {/* Stan Skupienia przeniesiony wyżej dla ułatwienia */}
                     <div className="form-control bg-base-200/50 p-3 rounded-xl border border-base-300">
                       <label className="label pb-1"><span className="label-text font-bold">Stan skupienia (ADHD)</span></label>
                       <div className="flex flex-col gap-2 mt-2">
@@ -341,6 +347,14 @@ function MainPage() {
                           <span className="label-text text-primary font-semibold">Hiperfokus</span>
                         </label>
                       </div>
+                    </div>
+
+                    <div className="form-control">
+                      {/* ZMIANA: activity nie jest już wymagane (required) */}
+                      <input name="activity" placeholder="Co robisz? (Zostaw puste dla samego skupienia)" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.activity} onChange={handleChange} />
+                    </div>
+                    <div className="form-control">
+                      <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.context} onChange={handleChange} />
                     </div>
 
                     <div className="form-control">
@@ -363,11 +377,19 @@ function MainPage() {
                       <option value="Tak">Czy przyjemna? Tak</option>
                     </select>
                     <textarea name="notes" placeholder="Uwagi / Myśli automatyczne" className="textarea textarea-bordered h-24 w-full leading-snug focus:border-accent focus:ring-1 focus:ring-accent" value={formData.notes} onChange={handleChange} />
-                    <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>{editingId ? "Zapisz zmiany" : "Dodaj wpis"}</button>
+
+                    <button type="submit" className="btn btn-primary w-full" disabled={isReadOnly}>{editingId ? "Zapisz zmiany" : "Zapisz"}</button>
+
+                    {/* Przycisk Usuwania dodany w trybie edycji, by ułatwić zarządzanie wpisami z samej mapy */}
                     {editingId && (
-                      <button type="button" className="btn btn-ghost w-full" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', focusState: 'spokój', notes: '' }); }}>
-                        Anuluj
-                      </button>
+                      <div className="flex gap-2 w-full mt-2">
+                        <button type="button" className="btn btn-ghost flex-1" onClick={() => { setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', focusState: 'spokój', notes: '' }); }}>
+                          Anuluj
+                        </button>
+                        <button type="button" className="btn btn-outline btn-error flex-1" disabled={isReadOnly} onClick={() => { deleteDoc(doc(db, "activities", editingId)); setEditingId(null); setFormData({ hour: '', activity: '', context: '', pleasure: 0, mastery: 0, emotion: '', emotionIntensity: 0, isPleasant: 'Tak', focusState: 'spokój', notes: '' }); }}>
+                          Usuń wpis
+                        </button>
+                      </div>
                     )}
                   </form>
                 </div>
@@ -390,7 +412,8 @@ function MainPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {activities.length > 0 ? activities.map(act => (
+                        {/* Tabela wyświetla tylko pełne aktywności */}
+                        {fullActivities.length > 0 ? fullActivities.map(act => (
                           <tr key={act.id} className="hover">
                             <td className="font-bold">{act.hour}</td>
                             <td className="min-w-[200px] max-w-[300px]">
@@ -419,20 +442,21 @@ function MainPage() {
                             </td>
                           </tr>
                         )) : (
-                          <tr><td colSpan="8" className="text-center py-10 opacity-50">Brak aktywności dla wybranej daty.</td></tr>
+                          <tr><td colSpan="8" className="text-center py-10 opacity-50">Brak pełnych aktywności w tym dniu.</td></tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
-                {activities.length > 0 && (
+                {/* Kafelki obliczane tylko dla pełnych aktywności */}
+                {fullActivities.length > 0 && (
                   <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="alert alert-info shadow-lg">
                       <div>
                         <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>
                         <div className="text-sm font-medium">
-                          {activities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
+                          {fullActivities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
                         </div>
                       </div>
                     </div>
@@ -440,14 +464,14 @@ function MainPage() {
                       <div>
                         <h3 className="font-bold">Największa przyjemność dziś:</h3>
                         <div className="text-sm font-medium">
-                          {activities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
+                          {fullActivities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* MAPA SKUPIENIA W APLIKACJI (Z literami) */}
+                {/* Mapa Skupienia bierze wszystkie wpisy z bazy (też te bez aktywności) */}
                 {activities.length > 0 && (
                   <div className="card bg-base-100 shadow-xl p-6 mt-8 border-t-4 rounded-t-none border-primary">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -462,9 +486,13 @@ function MainPage() {
                         if (act.focusState === 'hiperfokus') { bgColor = "bg-primary"; letter = "F"; }
 
                         return (
-                          <div key={act.id} className="flex flex-col items-center gap-1 group cursor-pointer">
+                          <div
+                            key={act.id}
+                            className="flex flex-col items-center gap-1 group cursor-pointer"
+                            onClick={() => startEdit(act)} // Kwadrat jest klikalny i wczytuje wpis do edycji
+                          >
                             <span className="text-[10px] font-mono opacity-50 group-hover:opacity-100 transition-opacity">{act.hour}</span>
-                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} transition-transform hover:scale-110 flex items-center justify-center text-white text-xs font-bold`} data-tip={`${act.activity}`}>
+                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} transition-transform hover:scale-110 flex items-center justify-center text-white text-xs font-bold`} data-tip={act.activity || "Tylko stan skupienia"}>
                               {letter}
                             </div>
                           </div>
@@ -482,6 +510,7 @@ function MainPage() {
                         <div className="w-5 h-5 bg-primary rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">F</div> Hiperfokus
                       </div>
                     </div>
+                    <p className="text-xs opacity-50 mt-4 italic">Wskazówka: Kliknij na kwadracik, aby go edytować lub usunąć.</p>
                   </div>
                 )}
               </div>
