@@ -12,6 +12,7 @@ const DAYS = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobot
 
 const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   const [weeklyData, setWeeklyData] = useState(null);
+  const [weeklyActivities, setWeeklyActivities] = useState([]);
   const [currentWeekKey, setCurrentWeekKey] = useState("");
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (initialDate) {
@@ -70,6 +71,43 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
     return () => unsub();
   }, [db, targetUid, currentWeekKey, isReadOnly]);
+
+  useEffect(() => {
+    if (!targetUid || !currentWeekKey) {
+      setWeeklyActivities([]);
+      return;
+    }
+
+    const q = query(collection(db, "activities"), where("userId", "==", targetUid));
+    const unsub = onSnapshot(q, (querySnapshot) => {
+      const data = querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      }));
+      setWeeklyActivities(data);
+    }, (error) => {
+      console.error("Błąd pobierania aktywności tygodniowych:", error);
+    });
+
+    return () => unsub();
+  }, [db, targetUid, currentWeekKey]);
+
+  const hours = Array.from({ length: 16 }, (_, i) => String(i + 7).padStart(2, "0"));
+
+  const getWeekDateIso = (index) => {
+    const dateObj = getDateFromWeekKey(currentWeekKey, index);
+    const yyyy = dateObj.getFullYear();
+    const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const dd = String(dateObj.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const weeklyFocusRows = currentWeekKey ? DAYS.map((day, index) => {
+    const dateIso = getWeekDateIso(index);
+    const dailyActs = weeklyActivities.filter(act => act.date === dateIso);
+    const statesByHour = hours.map(h => dailyActs.find(act => act.hour && act.hour.startsWith(`${h}:`))?.focusState);
+    return { day, statesByHour };
+  }) : [];
 
   const handleWeeklyUpdate = async (newData, isTopLevel = false) => {
     if (isReadOnly) return;
@@ -452,7 +490,47 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       <div className="divider my-8">Analiza i Podsumowanie</div>
 
       <div className="mb-8">
-        <h3 className="text-lg font-bold text-center mb-4 text-base-content/70">Wykres nastroju w trakcie tygodnia</h3>
+        <h3 className="text-lg font-bold text-center mb-4 text-base-content/70">Tygodniowa mapa skupienia (ADHD)</h3>
+        <div className="overflow-x-auto rounded-lg border border-base-200">
+          <table className="table table-sm">
+            <thead>
+              <tr className="bg-primary text-primary-content">
+                <th className="text-left">Dzień</th>
+                {hours.map(hour => (
+                  <th key={hour} className="text-center">{hour}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {weeklyFocusRows.map(row => (
+                <tr key={row.day}>
+                  <th className="text-left font-semibold">{row.day}</th>
+                  {row.statesByHour.map((state, idx) => {
+                    let cellClass = "bg-base-200";
+                    let label = "";
+                    if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "H"; }
+                    else if (state === "hiperfokus") { cellClass = "bg-primary text-primary-content"; label = "F"; }
+                    else if (state) { cellClass = "bg-success text-success-content"; label = "OK"; }
+
+                    return (
+                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass}`}>
+                        <span className="text-[10px] font-bold">{label}</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs mt-3">
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (H)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-success inline-block" /><span>Spokój (OK)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-primary inline-block" /><span>Hiperfokus (F)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>
+        </div>
+
+        <h3 className="text-lg font-bold text-center mt-8 mb-4 text-base-content/70">Wykres nastroju w trakcie tygodnia</h3>
         <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
       </div>
 
