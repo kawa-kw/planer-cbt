@@ -291,14 +291,14 @@ function MainPage() {
 
   return (
     <>
-      <div className="tabs tab-bordered justify-center py-2">
+      <div className="tabs tab-bordered justify-center flex-wrap gap-2 py-2 px-2">
         <button className={`tab ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
         <button className={`tab ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
         {!isReadOnly && <button className={`tab ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
       </div>
 
       {activeTab === "daily" && (
-        <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8">
+        <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8 overflow-x-hidden">
           <div className="max-w-[1800px] mx-auto">
             <header className="mb-8 lg:mb-0 text-center relative">
               <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
@@ -317,7 +317,7 @@ function MainPage() {
               </button>
             </div>
             <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
-              <div className={`lg:col-span-2 space-y-6 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
+              <div className={`lg:col-span-2 space-y-6 min-w-0 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
                 <div className="relative card bg-base-100 shadow-xl p-6">
                   <h2 className="card-title mb-4">Wybierz datę</h2>
                   <input type="date" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
@@ -397,7 +397,7 @@ function MainPage() {
                 </div>
               </div>
 
-              <div className={`${isFormExpanded ? 'lg:col-span-4' : 'lg:col-span-6'} transition-all duration-300 ease-in-out relative`}>
+              <div className={`${isFormExpanded ? 'lg:col-span-4' : 'lg:col-span-6'} min-w-0 transition-all duration-300 ease-in-out relative`}>
                 <div className="card bg-base-100 shadow-xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="table table-zebra w-full text-sm">
@@ -501,7 +501,7 @@ function MainPage() {
                         );
                       })}
                     </div>
-                    <div className="flex gap-6 mt-6 pt-4 border-t border-base-200 text-sm opacity-80 font-semibold">
+                    <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t border-base-200 text-sm opacity-80 font-semibold">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 bg-warning rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">CH</div> Chaos
                       </div>
