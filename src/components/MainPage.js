@@ -361,7 +361,13 @@ function MainPage() {
 
                     <div className="form-control">
                       {/* ZMIANA: activity nie jest już wymagane (required) */}
-                      <input name="activity" placeholder="Co robisz? (Zostaw puste dla samego skupienia)" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.activity} onChange={handleChange} />
+                      <textarea
+                        name="activity"
+                        placeholder="Co robisz? (Zostaw puste dla samego skupienia)"
+                        className="textarea textarea-bordered h-24 w-full leading-snug focus:border-accent focus:ring-1 focus:ring-accent"
+                        value={formData.activity}
+                        onChange={handleChange}
+                      />
                     </div>
                     <div className="form-control">
                       <input name="context" placeholder="Gdzie / Z kim?" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={formData.context} onChange={handleChange} />
