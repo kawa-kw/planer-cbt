@@ -224,7 +224,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           const state = actInHour.focusState || 'spokój';
           // Dodano litery (content) do komórek
           if (state === 'chaos') {
-            row.push({ content: 'H', styles: { fillColor: [251, 191, 36], textColor: [255, 255, 255], fontStyle: 'bold' } });
+            row.push({ content: 'CH', styles: { fillColor: [251, 191, 36], textColor: [255, 255, 255], fontStyle: 'bold' } });
           } else if (state === 'hiperfokus') {
             row.push({ content: 'F', styles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' } });
           } else {
@@ -345,7 +345,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
           const state = act.focusState || 'spokój';
           let letter = 'OK';
-          if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'H'; }
+          if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'CH'; }
           else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
           else { doc.setFillColor(34, 197, 94); letter = 'OK'; }
 
@@ -492,29 +492,29 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       <div className="mb-8">
         <h3 className="text-lg font-bold text-center mb-4 text-base-content/70">Tygodniowa mapa skupienia (ADHD)</h3>
         <div className="overflow-x-auto rounded-lg border border-base-200">
-          <table className="table table-sm">
+          <table className="table table-xs table-fixed">
             <thead>
               <tr className="bg-primary text-primary-content">
-                <th className="text-left">Dzień</th>
+                <th className="text-base-content/70 text-[11px] py-1 px-2">Dzień / godz.</th>
                 {hours.map(hour => (
-                  <th key={hour} className="text-center">{hour}</th>
+                  <th key={hour} className="text-center text-base-content/70 text-[11px] py-1 px-2">{hour}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {weeklyFocusRows.map(row => (
                 <tr key={row.day}>
-                  <th className="text-left font-semibold">{row.day}</th>
+                  <th className="text-left font-semibold text-[11px] py-1 px-2 leading-tight">{row.day}</th>
                   {row.statesByHour.map((state, idx) => {
                     let cellClass = "bg-base-200";
                     let label = "";
-                    if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "H"; }
+                    if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "CH"; }
                     else if (state === "hiperfokus") { cellClass = "bg-primary text-primary-content"; label = "F"; }
                     else if (state) { cellClass = "bg-success text-success-content"; label = "OK"; }
 
                     return (
-                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass}`}>
-                        <span className="text-[10px] font-bold">{label}</span>
+                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} p-0 w-8 h-8`}>
+                        <span className="text-[10px] font-bold inline-flex w-6 h-6 items-center justify-center">{label}</span>
                       </td>
                     );
                   })}
@@ -524,7 +524,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           </table>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs mt-3">
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (H)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (CH)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-success inline-block" /><span>Spokój (OK)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-primary inline-block" /><span>Hiperfokus (F)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>

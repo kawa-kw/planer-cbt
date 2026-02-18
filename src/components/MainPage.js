@@ -61,6 +61,7 @@ function MainPage() {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [targetUid, setTargetUid] = useState(null);
   const [activeTab, setActiveTab] = useState("daily");
+  const selectedDayName = new Date(selectedDate).toLocaleDateString("pl-PL", { weekday: "long" });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -217,7 +218,7 @@ function MainPage() {
 
       const state = act.focusState || 'spokój';
       let letter = 'OK';
-      if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'H'; }
+      if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'CH'; }
       else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
       else { doc.setFillColor(34, 197, 94); letter = 'OK'; }
 
@@ -312,7 +313,7 @@ function MainPage() {
               <button className="hidden btn btn-ghost btn-sm lg:flex lg:gap-2 lg:items-center relative z-10" onClick={() => setIsFormExpanded(!isFormExpanded)}>
                 <AngleIcon className={isFormExpanded ? 'transform rotate-180' : ''} />
                 {isReadOnly ? 'Wybierz datę' : isFormExpanded ? 'Zwiń formularz' : 'Rozwiń formularz'}
-                <span className="badge badge-info font-bold">{selectedDate}</span>
+                <span className="badge badge-info font-bold">{selectedDate} • {selectedDayName}</span>
               </button>
             </div>
             <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
@@ -320,6 +321,7 @@ function MainPage() {
                 <div className="relative card bg-base-100 shadow-xl p-6">
                   <h2 className="card-title mb-4">Wybierz datę</h2>
                   <input type="date" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+                  <span className="text-xs opacity-70 pt-1 pl-1 capitalize">{selectedDayName}</span>
                 </div>
 
                 <div className={`${isReadOnly ? 'hidden lg:block' : ''} card bg-base-100 shadow-xl p-6`}>
@@ -491,8 +493,8 @@ function MainPage() {
                             className="flex flex-col items-center gap-1 group cursor-pointer"
                             onClick={() => startEdit(act)} // Kwadrat jest klikalny i wczytuje wpis do edycji
                           >
-                            <span className="text-[10px] font-mono opacity-50 group-hover:opacity-100 transition-opacity">{act.hour}</span>
-                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} transition-transform hover:scale-110 flex items-center justify-center text-white text-xs font-bold`} data-tip={act.activity || "Tylko stan skupienia"}>
+                            <span className="text-[11px]">{act.hour}</span>
+                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} transition-transform hover:scale-110 flex items-center justify-center text-white text-[10px] font-bold`} data-tip={act.activity || "Tylko stan skupienia"}>
                               {letter}
                             </div>
                           </div>
@@ -501,13 +503,13 @@ function MainPage() {
                     </div>
                     <div className="flex gap-6 mt-6 pt-4 border-t border-base-200 text-sm opacity-80 font-semibold">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-warning rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">H</div> Chaos
+                        <div className="w-5 h-5 bg-warning rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">CH</div> Chaos
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-success rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">OK</div> Spokój
+                        <div className="w-5 h-5 bg-success rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">OK</div> Spokój
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-primary rounded-full shadow-sm flex items-center justify-center text-white text-[10px] font-bold">F</div> Hiperfokus
+                        <div className="w-5 h-5 bg-primary rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">F</div> Hiperfokus
                       </div>
                     </div>
                     <p className="text-xs opacity-50 mt-4 italic">Wskazówka: Kliknij na kwadracik, aby go edytować lub usunąć.</p>
