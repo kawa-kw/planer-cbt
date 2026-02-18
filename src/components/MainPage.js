@@ -62,6 +62,7 @@ function MainPage() {
   const [targetUid, setTargetUid] = useState(null);
   const [activeTab, setActiveTab] = useState("daily");
   const selectedDayName = new Date(selectedDate).toLocaleDateString("pl-PL", { weekday: "long" });
+  const todayIso = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -291,10 +292,10 @@ function MainPage() {
 
   return (
     <>
-      <div className="tabs tab-bordered justify-center flex-wrap gap-2 py-2 px-2">
-        <button className={`tab ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
-        <button className={`tab ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
-        {!isReadOnly && <button className={`tab ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
+      <div className="tabs tab-bordered justify-center flex-wrap gap-2 md:gap-4 py-2 px-2">
+        <button className={`tab px-1 ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
+        <button className={`tab px-1 ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
+        {!isReadOnly && <button className={`tab px-1 ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
       </div>
 
       {activeTab === "daily" && (
@@ -319,7 +320,14 @@ function MainPage() {
             <div className="relative grid grid-cols-1 lg:grid-cols-6 gap-8">
               <div className={`lg:col-span-2 space-y-6 min-w-0 ${isFormExpanded ? 'lg:relative lg:left-0' : 'lg:absolute lg:left-[-100%]'} transition-all duration-300 ease-in-out relative`}>
                 <div className="relative card bg-base-100 shadow-xl p-6">
-                  <h2 className="card-title mb-4">Wybierz datę</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="card-title">Wybierz datę</h2>
+                    {selectedDate !== todayIso && (
+                      <button type="button" className="btn btn-xs btn-outline" onClick={() => setSelectedDate(todayIso)}>
+                        Dzisiaj
+                      </button>
+                    )}
+                  </div>
                   <input type="date" className="input input-bordered focus:border-accent focus:ring-1 focus:ring-accent" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
                   <span className="text-xs opacity-70 pt-1 pl-1 capitalize">{selectedDayName}</span>
                 </div>
@@ -456,7 +464,7 @@ function MainPage() {
                   <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="alert alert-info shadow-lg">
                       <div>
-                        <h3 className="font-bold">Najwyższa skuteczność dziś:</h3>
+                        <h3 className="font-bold">Najwyższa skuteczność dziś (M):</h3>
                         <div className="text-sm font-medium">
                           {fullActivities.reduce((prev, current) => (prev.mastery > current.mastery) ? prev : current).activity}
                         </div>
@@ -464,7 +472,7 @@ function MainPage() {
                     </div>
                     <div className="alert alert-success shadow-lg text-success-content">
                       <div>
-                        <h3 className="font-bold">Największa przyjemność dziś:</h3>
+                        <h3 className="font-bold">Największa przyjemność dziś (P):</h3>
                         <div className="text-sm font-medium">
                           {fullActivities.reduce((prev, current) => (prev.pleasure > current.pleasure) ? prev : current).activity}
                         </div>

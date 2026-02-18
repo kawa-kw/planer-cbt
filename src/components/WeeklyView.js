@@ -24,9 +24,11 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
   const currentDayName = DAYS[activeDayIndex];
   const weekRange = getFullWeekRange(currentWeekKey);
+  const currentWeekIso = getWeekKey(new Date());
 
   const goToNextWeek = () => setCurrentWeekKey(prev => getAdjacentWeekKey(prev, "next"));
   const goToPreviousWeek = () => setCurrentWeekKey(prev => getAdjacentWeekKey(prev, "prev"));
+  const goToCurrentWeek = () => setCurrentWeekKey(currentWeekIso);
 
   useEffect(() => {
     if (!currentWeekKey) setCurrentWeekKey(getWeekKey(new Date()));
@@ -451,17 +453,20 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         <h1 className="text-2xl md:text-3xl font-bold text-primary flex justify-center items-center gap-2">
           Tygodniowy plan aktywizacji
         </h1>
-        <div className="flex justify-center gap-6 items-center my-4">
+        <div className="relative flex flex-wrap justify-center gap-4 items-center my-4">
           <button className="btn btn-outline btn-secondary btn-xs" onClick={goToPreviousWeek}>← <span className="hidden md:inline ml-1">Poprzedni tydzień</span></button>
           <span className="text-xs md:text-base font-bold">{weekRange}</span>
           <button className="btn btn-outline btn-secondary btn-xs" onClick={goToNextWeek}><span className="hidden md:inline mr-1">Następny tydzień</span> →</button>
+          {currentWeekKey && currentWeekKey !== currentWeekIso && (
+            <button className="btn btn-outline btn-info btn-xs" onClick={goToCurrentWeek}>Bieżący tydzień</button>
+          )}
         </div>
         {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
       </div>
       <div className="flex justify-end gap-2 mb-4">
         <button
           onClick={exportWeeklyToPDF}
-          className="btn btn-outline btn-accent btn-sm"
+          className="btn btn-xs md:btn-sm btn-outline btn-accent"
           disabled={!weeklyData}
         >
           Eksportuj Tydzień (PDF)
