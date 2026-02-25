@@ -94,7 +94,10 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     return () => unsub();
   }, [db, targetUid, currentWeekKey]);
 
-  const hours = Array.from({ length: 16 }, (_, i) => String(i + 7).padStart(2, "0"));
+  const hours = Array.from({ length: 20 }, (_, i) => {
+    const hour = (i + 7) % 24;
+    return String(hour).padStart(2, "0");
+  });
 
   const getWeekDateIso = (index) => {
     const dateObj = getDateFromWeekKey(currentWeekKey, index);
@@ -207,7 +210,10 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.text(removePolishAccents("Tygodniowa Mapa Skupienia (ADHD)"), 14, finalY);
     finalY += 6;
 
-    const hours = Array.from({ length: 16 }, (_, i) => String(i + 7).padStart(2, '0'));
+    const hours = Array.from({ length: 20 }, (_, i) => {
+      const hour = (i + 7) % 24;
+      return String(hour).padStart(2, '0');
+    });
     const mapHeadRow = ["Dzien", ...hours];
 
     const mapRows = DAYS.map((day, index) => {
@@ -492,34 +498,34 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         displayDate={currentDayDate}
       />
 
-      <div className="divider my-8">Analiza i Podsumowanie</div>
+      <div className="divider my-8">Analiza i Podsumowanie Tygodnia</div>
 
-      <div className="mb-8">
-        <h3 className="text-lg font-bold text-center mb-4 text-base-content/70">Tygodniowa mapa skupienia (ADHD)</h3>
-        <div className="overflow-x-auto rounded-lg border border-base-200">
-          <table className="table table-xs table-fixed">
+      <div className="card bg-base-100 shadow-xl p-6 border-r-4 border-info rounded-r-none mb-12">
+        <h3 className="text-lg font-bold text-center mb-5 text-base-content/70">Tygodniowa mapa skupienia (ADHD)</h3>
+        <div className="overflow-x-auto">
+          <table className="table table-xs md:w-full">
             <thead>
-              <tr className="bg-primary text-primary-content">
-                <th className="text-base-content/70 text-[11px] py-1 px-2">Dzień / godz.</th>
+              <tr className="text-primary-content h-8">
+                <th className="text-base-content/70 text-[11px] py-1 px-2 rounded-none">Dzień / godz.</th>
                 {hours.map(hour => (
-                  <th key={hour} className="text-center text-base-content/70 text-[11px] py-1 px-2">{hour}</th>
+                  <th key={hour} className="text-center text-base-content/70 text-[11px] py-1">{hour}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {weeklyFocusRows.map(row => (
                 <tr key={row.day}>
-                  <th className="text-left font-semibold text-[11px] py-1 px-2 leading-tight">{row.day}</th>
+                  <th className="bg-base-200 text-left text-[11px] rounded-none !p-2">{row.day}</th>
                   {row.statesByHour.map((state, idx) => {
-                    let cellClass = "bg-base-200";
+                    let cellClass = "bg-base-100";
                     let label = "";
                     if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "CH"; }
                     else if (state === "hiperfokus") { cellClass = "bg-primary text-primary-content"; label = "F"; }
                     else if (state) { cellClass = "bg-success text-success-content"; label = "OK"; }
 
                     return (
-                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} p-0 w-8 h-8`}>
-                        <span className="text-[10px] font-bold inline-flex w-6 h-6 items-center justify-center">{label}</span>
+                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} !p-0 md:!p-2`}>
+                        <span className="text-[10px] font-bold inline-flex items-center justify-center">{label}</span>
                       </td>
                     );
                   })}
@@ -535,12 +541,12 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>
         </div>
 
-        <h3 className="text-lg font-bold text-center mt-8 mb-4 text-base-content/70">Wykres nastroju w trakcie tygodnia</h3>
+        <div className="divider my-8" />
         <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
       </div>
 
       {activeDayIndex === 0 && (
-        <section className="animate-fade-in bg-base-100 p-6 rounded-xl shadow-lg border border-primary/20">
+        <section className="animate-fade-in">
           <h2 className="text-xl font-bold text-primary mb-6 text-center">
             Start Tygodnia
           </h2>

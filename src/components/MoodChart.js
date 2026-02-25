@@ -30,14 +30,10 @@ const MoodChart = ({ className, plannedActivities }) => {
   });
 
   return (
-    <div className={`card bg-base-100 shadow-xl p-6 border-t-4 border-primary rounded-t-none mb-8 ${className || ''}`}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="card-title text-base font-bold">
-          Tygodniowy Trend Nastroju i Energii (Średnia dobowa)
-        </h2>
-        <div className="badge badge-ghost text-[10px]">Skala 0-10</div>
-      </div>
-      <div className="h-[300px] w-full">
+    <div className={className}>
+      <h3 className="text-lg font-bold text-center mb-5 text-base-content/70">Wykres nastroju w trakcie tygodnia (średnia dobowa)</h3>
+      <div className="relative h-[300px] w-full">
+        <span className="badge badge-ghost text-[10px] absolute right-2 top-0">Skala 0-10</span>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
