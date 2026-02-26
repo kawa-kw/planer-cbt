@@ -156,6 +156,9 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       console.log("Błąd pobierania aktywności dziennych:", error);
     }
 
+    const okFillColor = [54, 203, 148, 0.3];
+    const okTextColor = [4, 55, 36];
+
     // STRONA 1: PODSUMOWANIE TYGODNIA
     doc.setFontSize(18);
     doc.setTextColor(79, 70, 229);
@@ -236,7 +239,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           } else if (state === 'hiperfokus') {
             row.push({ content: 'F', styles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' } });
           } else {
-            row.push({ content: 'OK', styles: { fillColor: [34, 197, 94], textColor: [255, 255, 255], fontStyle: 'bold' } });
+            row.push({ content: 'OK', styles: { fillColor: [54, 203, 148], fillOpacity: 0.3, textColor: [4, 55, 36], fontStyle: 'bold' } });
           }
         } else {
           row.push({ content: '', styles: { fillColor: [245, 245, 245] } });
@@ -264,8 +267,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, legendY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, legendY + 3.5);
 
-    doc.setFillColor(34, 197, 94); doc.rect(36, legendY, 5, 5, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
+    doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, legendY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+    doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, legendY + 3.5);
 
     doc.setFillColor(147, 51, 234); doc.rect(60, legendY, 5, 5, 'F');
@@ -355,11 +358,16 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           let letter = 'OK';
           if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'CH'; }
           else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
-          else { doc.setFillColor(34, 197, 94); letter = 'OK'; }
+          else { doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); letter = 'OK'; }
 
           doc.rect(currentX, mapY + 7, 10, 5, 'F');
+          if (state === 'spokój' || !state) { doc.setGState(new doc.GState({opacity: 1.0})); }
 
-          doc.setTextColor(255, 255, 255);
+          if (state === 'spokój' || !state) {
+            doc.setTextColor(...okTextColor);
+          } else {
+            doc.setTextColor(255, 255, 255);
+          }
           doc.setFontSize(7);
           doc.setFont("helvetica", "bold");
           doc.text(letter, currentX + 5, mapY + 10.5, { align: 'center' });
@@ -376,8 +384,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, mapY + 3.5, { align: 'center' });
         doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, mapY + 3.5);
 
-        doc.setFillColor(34, 197, 94); doc.rect(36, mapY, 5, 5, 'F');
-        doc.setTextColor(255, 255, 255); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
+        doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+        doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
         doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, mapY + 3.5);
 
         doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
@@ -427,7 +435,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
               const value = data.cell.raw;
               if (value === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
               else if (value === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-              else { data.cell.styles.textColor = [22, 163, 74]; }
+              else { data.cell.styles.fillColor = [54, 203, 148]; data.cell.styles.fillOpacity = 0.3; data.cell.styles.textColor = [4, 55, 36]; data.cell.styles.fontStyle = 'bold'; }
             }
           }
         }
@@ -519,12 +527,13 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
                   {row.statesByHour.map((state, idx) => {
                     let cellClass = "bg-base-100";
                     let label = "";
+                    let customStyle = null;
                     if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "CH"; }
                     else if (state === "hiperfokus") { cellClass = "bg-primary text-primary-content"; label = "F"; }
-                    else if (state) { cellClass = "bg-success text-success-content"; label = "OK"; }
+                    else if (state) { customStyle = {backgroundColor: '#36cb944d', color: '#043724'}; label = "OK"; }
 
                     return (
-                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} !p-0 md:!p-2`}>
+                      <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} !p-0 md:!p-2`} style={customStyle}>
                         <span className="text-[10px] font-bold inline-flex items-center justify-center">{label}</span>
                       </td>
                     );
@@ -536,7 +545,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs mt-3">
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (CH)</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-success inline-block" /><span>Spokój (OK)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded inline-block" style={{backgroundColor: '#36cb944d'}} /><span>Spokój (OK)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-primary inline-block" /><span>Hiperfokus (F)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>
         </div>
