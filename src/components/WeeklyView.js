@@ -239,7 +239,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           } else if (state === 'hiperfokus') {
             row.push({ content: 'F', styles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' } });
           } else {
-            row.push({ content: 'OK', styles: { fillColor: [54, 203, 148], fillOpacity: 0.3, textColor: [4, 55, 36], fontStyle: 'bold' } });
+            row.push({ content: 'OK', styles: { fillColor: [195, 239, 223], textColor: [4, 55, 36], fontStyle: 'bold' } });
           }
         } else {
           row.push({ content: '', styles: { fillColor: [245, 245, 245] } });
@@ -435,7 +435,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
               const value = data.cell.raw;
               if (value === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
               else if (value === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-              else { data.cell.styles.fillColor = [54, 203, 148]; data.cell.styles.fillOpacity = 0.3; data.cell.styles.textColor = [4, 55, 36]; data.cell.styles.fontStyle = 'bold'; }
+              else { data.cell.styles.fillColor = [195, 239, 223]; data.cell.styles.textColor = [4, 55, 36]; data.cell.styles.fontStyle = 'bold'; }
             }
           }
         }
