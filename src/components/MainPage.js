@@ -160,6 +160,8 @@ function MainPage() {
     doc.setFontSize(11); doc.text(`Data: ${selectedDate}`, 14, 22);
 
     const tableColumn = ["Godzina", "Aktywnosc", "Kontekst", "Przyj.", "Skut.", "Emocje", "Sila", "Przyj.?", "Skupienie", "Uwagi"];
+    const okFillColor = [54, 203, 148, 0.3];
+    const okTextColor = [4, 55, 36];
 
     // Tabela w PDF zawiera tylko pełne wpisy (z nazwą aktywności)
     const tableRows = activities
@@ -199,7 +201,7 @@ function MainPage() {
             const val = data.cell.raw;
             if (val === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
             else if (val === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-            else if (val !== '-') { data.cell.styles.textColor = [22, 163, 74]; }
+            else if (val !== '-') { data.cell.styles.fillColor = okFillColor; data.cell.styles.textColor = okTextColor; data.cell.styles.fontStyle = 'bold'; }
           }
         }
       }
@@ -221,11 +223,16 @@ function MainPage() {
       let letter = 'OK';
       if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'CH'; }
       else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
-      else { doc.setFillColor(34, 197, 94); letter = 'OK'; }
+      else { doc.setFillColor(54, 203, 148); doc.setGState(new doc.GState({opacity: 0.3})); letter = 'OK'; }
 
       doc.rect(currentX, mapY + 7, 10, 5, 'F');
+      if (state === 'spokój' || !state) { doc.setGState(new doc.GState({opacity: 1.0})); }
 
-      doc.setTextColor(255, 255, 255);
+      if (state === 'spokój' || !state) {
+        doc.setTextColor(...okTextColor);
+      } else {
+        doc.setTextColor(255, 255, 255);
+      }
       doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
       doc.text(letter, currentX + 5, mapY + 10.5, { align: 'center' });
@@ -241,8 +248,8 @@ function MainPage() {
     doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, mapY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, mapY + 3.5);
 
-    doc.setFillColor(34, 197, 94); doc.rect(36, mapY, 5, 5, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
+    doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+    doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, mapY + 3.5);
 
     doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
@@ -346,11 +353,11 @@ function MainPage() {
                       <div className="flex flex-col gap-2 mt-2">
                         <label className="cursor-pointer flex items-center gap-3">
                           <input type="radio" name="focusState" value="chaos" className="radio radio-warning radio-sm" checked={formData.focusState === 'chaos'} onChange={handleChange} />
-                          <span className="label-text text-warning font-semibold">Duży chaos / Rozproszenie</span>
+                          <span className="label-text text-warning font-semibold">Rozproszenie/chaos</span>
                         </label>
                         <label className="cursor-pointer flex items-center gap-3">
                           <input type="radio" name="focusState" value="spokój" className="radio radio-success radio-sm" checked={formData.focusState === 'spokój'} onChange={handleChange} />
-                          <span className="label-text text-success font-semibold">Spokój / Balans</span>
+                          <span className="label-text text-success font-semibold">Balans/spokój</span>
                         </label>
                         <label className="cursor-pointer flex items-center gap-3">
                           <input type="radio" name="focusState" value="hiperfokus" className="radio radio-primary radio-sm" checked={formData.focusState === 'hiperfokus'} onChange={handleChange} />
@@ -445,7 +452,7 @@ function MainPage() {
                             </td>
                             <td>
                               {act.focusState === 'chaos' && <span className="badge badge-warning badge-sm font-bold">Chaos</span>}
-                              {(act.focusState === 'spokój' || !act.focusState) && <span className="badge badge-success badge-sm text-white font-bold">Spokój</span>}
+                              {(act.focusState === 'spokój' || !act.focusState) && <span className="badge badge-sm font-bold border" style={{backgroundColor: '#36cb944d', color: '#043724', borderColor: '#36cb944d'}}>Spokój</span>}
                               {act.focusState === 'hiperfokus' && <span className="badge badge-primary badge-sm text-white font-bold">Hiperfokus</span>}
                             </td>
                             <td>
@@ -496,10 +503,12 @@ function MainPage() {
                     </h3>
                     <div className="flex flex-wrap gap-3 items-end">
                       {activities.map(act => {
-                        let bgColor = "bg-success";
+                        let bgColor = "";
+                        let textColor = "";
+                        let customStyle = { backgroundColor: '#36cb944d', color: '#043724' };
                         let letter = "OK";
-                        if (act.focusState === 'chaos') { bgColor = "bg-warning"; letter = "CH"; }
-                        if (act.focusState === 'hiperfokus') { bgColor = "bg-primary"; letter = "F"; }
+                        if (act.focusState === 'chaos') { bgColor = "bg-warning"; textColor = "text-white"; customStyle = null; letter = "CH"; }
+                        if (act.focusState === 'hiperfokus') { bgColor = "bg-primary"; textColor = "text-white"; customStyle = null; letter = "F"; }
 
                         return (
                           <div
@@ -508,7 +517,7 @@ function MainPage() {
                             onClick={() => startEdit(act)} // Kwadrat jest klikalny i wczytuje wpis do edycji
                           >
                             <span className="text-[11px]">{act.hour}</span>
-                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} transition-transform hover:scale-110 flex items-center justify-center text-white text-[10px] font-bold`} data-tip={act.activity || "Tylko stan skupienia"}>
+                            <div className={`w-8 h-8 rounded-md shadow-sm tooltip ${bgColor} ${textColor} transition-transform hover:scale-110 flex items-center justify-center text-[10px] font-bold`} style={customStyle} data-tip={act.activity || "Tylko stan skupienia"}>
                               {letter}
                             </div>
                           </div>
@@ -520,7 +529,7 @@ function MainPage() {
                         <div className="w-5 h-5 bg-warning rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">CH</div> Chaos
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-success rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">OK</div> Spokój
+                        <div className="w-5 h-5 rounded-full shadow-sm flex items-center justify-center text-[9px] font-bold" style={{backgroundColor: '#36cb944d', color: '#043724'}}>OK</div> Spokój
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 bg-primary rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">F</div> Hiperfokus
