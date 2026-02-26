@@ -269,7 +269,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
     doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, legendY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
     doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
-    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, legendY + 3.5);
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("balans", 43, legendY + 3.5);
 
     doc.setFillColor(147, 51, 234); doc.rect(60, legendY, 5, 5, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("F", 62.5, legendY + 3.5, { align: 'center' });
@@ -386,7 +386,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
         doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
         doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
-        doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, mapY + 3.5);
+        doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("balans", 43, mapY + 3.5);
 
         doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
         doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("F", 62.5, mapY + 3.5, { align: 'center' });
@@ -545,7 +545,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs mt-3">
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (CH)</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded inline-block" style={{backgroundColor: '#36cb944d'}} /><span>Spokój (OK)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded inline-block" style={{backgroundColor: '#36cb944d'}} /><span>balans (OK)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-primary inline-block" /><span>Hiperfokus (F)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>
         </div>
