@@ -253,7 +253,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       body: mapRows,
       startY: finalY,
       theme: 'grid',
-      headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], halign: 'center', fontSize: 8 },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], halign: 'center', fontSize: 8 },
       styles: { fontSize: 8, cellPadding: 1, minCellHeight: 7, halign: 'center', valign: 'middle' },
       columnStyles: {
         0: { cellWidth: 30, halign: 'left', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: [0, 0, 0] }
