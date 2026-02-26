@@ -435,7 +435,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
               const value = data.cell.raw;
               if (value === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
               else if (value === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-              else { data.cell.styles.fillColor = [195, 239, 223]; data.cell.styles.textColor = [4, 55, 36]; data.cell.styles.fontStyle = 'bold'; }
+              else { data.cell.styles.textColor = [54, 203, 148]; data.cell.styles.fontStyle = 'bold'; }
             }
           }
         }
