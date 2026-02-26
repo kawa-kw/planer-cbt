@@ -160,7 +160,6 @@ function MainPage() {
     doc.setFontSize(11); doc.text(`Data: ${selectedDate}`, 14, 22);
 
     const tableColumn = ["Godzina", "Aktywnosc", "Kontekst", "Przyj.", "Skut.", "Emocje", "Sila", "Przyj.?", "Skupienie", "Uwagi"];
-    const okFillColor = [54, 203, 148, 0.3];
     const okTextColor = [4, 55, 36];
 
     // Tabela w PDF zawiera tylko pełne wpisy (z nazwą aktywności)

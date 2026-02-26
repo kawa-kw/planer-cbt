@@ -156,7 +156,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       console.log("Błąd pobierania aktywności dziennych:", error);
     }
 
-    const okFillColor = [54, 203, 148, 0.3];
     const okTextColor = [4, 55, 36];
 
     // STRONA 1: PODSUMOWANIE TYGODNIA
