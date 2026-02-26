@@ -250,7 +250,7 @@ function MainPage() {
 
     doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
     doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
-    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Spokoj", 43, mapY + 3.5);
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("balans", 43, mapY + 3.5);
 
     doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("F", 62.5, mapY + 3.5, { align: 'center' });
@@ -452,7 +452,7 @@ function MainPage() {
                             </td>
                             <td>
                               {act.focusState === 'chaos' && <span className="badge badge-warning badge-sm font-bold">Chaos</span>}
-                              {(act.focusState === 'spokój' || !act.focusState) && <span className="badge badge-sm font-bold border" style={{backgroundColor: '#36cb944d', color: '#043724', borderColor: '#36cb944d'}}>Spokój</span>}
+                              {(act.focusState === 'spokój' || !act.focusState) && <span className="badge badge-sm font-bold border" style={{backgroundColor: '#36cb944d', color: '#043724', borderColor: '#36cb944d'}}>balans</span>}
                               {act.focusState === 'hiperfokus' && <span className="badge badge-primary badge-sm text-white font-bold">Hiperfokus</span>}
                             </td>
                             <td>
@@ -529,7 +529,7 @@ function MainPage() {
                         <div className="w-5 h-5 bg-warning rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">CH</div> Chaos
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full shadow-sm flex items-center justify-center text-[9px] font-bold" style={{backgroundColor: '#36cb944d', color: '#043724'}}>OK</div> Spokój
+                        <div className="w-5 h-5 rounded-full shadow-sm flex items-center justify-center text-[9px] font-bold" style={{backgroundColor: '#36cb944d', color: '#043724'}}>OK</div> balans
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 bg-primary rounded-full shadow-sm flex items-center justify-center text-white text-[9px] font-bold">F</div> Hiperfokus
