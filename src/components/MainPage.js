@@ -13,6 +13,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import WeeklyView from "./WeeklyView";
+import qrCodeImage from '../assets/images/cbt-qr-code.png';
 import NotesView from "./NotesView";
 
 const firebaseConfig = {
@@ -155,9 +156,17 @@ function MainPage() {
 
   const exportToPDF = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    
+    // Header with user name
     const title = removePolishAccents("Dzienny plan aktywnosci - nurt CBT");
     doc.setFontSize(16); doc.text(title, 14, 15);
-    doc.setFontSize(11); doc.text(`Data: ${selectedDate}`, 14, 22);
+    doc.setFontSize(10); doc.text("Katarzyna Walenko", 14, 21);
+    doc.setFontSize(11); doc.text(`Data: ${selectedDate}`, 14, 27);
+    
+    // Add QR code in top right corner
+    doc.addImage(qrCodeImage, 'PNG', 250, 8, 25, 25);
+    doc.setFontSize(8); doc.text("Zobacz wiecej", 252, 35);
+    doc.text("w aplikacji", 254, 39);
 
     const tableColumn = ["Godzina", "Aktywnosc", "Kontekst", "Przyj.", "Skut.", "Emocje", "Sila", "Przyj.?", "Skupienie", "Uwagi"];
     const okTextColor = [4, 55, 36];
@@ -185,7 +194,7 @@ function MainPage() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 30,
+      startY: 42,
       styles: { fontSize: 8, font: "helvetica", cellPadding: 2 },
       headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
       columnStyles: { 9: { cellWidth: 40 } },

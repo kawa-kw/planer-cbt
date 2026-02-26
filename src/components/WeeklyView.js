@@ -7,6 +7,7 @@ import DayPlanDetail from "./DayPlanDetail";
 import { getAdjacentWeekKey, getDateFromWeekKey, getFullWeekRange, getWeekKey, removePolishAccents } from "../helpers";
 import WeeklySummary from "./WeeklySummary";
 import MoodChart from "./MoodChart";
+import qrCodeImage from '../assets/images/cbt-qr-code.png';
 
 const DAYS = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
@@ -163,25 +164,25 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.setTextColor(79, 70, 229);
     doc.text(removePolishAccents(`Podsumowanie Tygodnia: ${weekRange}`), 14, 15);
     doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10); 
+    doc.text("Katarzyna Walenko", 14, 22);
+    
+    // Add QR code in top right corner (powiększony o 1/3)
+    doc.addImage(qrCodeImage, 'PNG', 246, 8, 33.33, 33.33);
+    doc.setFontSize(8); 
+    doc.text("Zobacz wiecej", 252, 43);
+    doc.text("w aplikacji", 254, 47);
 
-    const metricsData = [
-      ["Poczatek Tygodnia", `Nastroj: ${weeklyData?.moodStart ?? 0}/10`, `Energia: ${weeklyData?.energyStart ?? 0}/10`],
-      ["Koniec Tygodnia", `Nastroj: ${weeklyData?.moodEnd ?? 0}/10`, `Energia: ${weeklyData?.energyEnd ?? 0}/10`]
-    ];
+    // Layout: Refleksje po lewej, tabela nastroju po prawej
+    const leftColumnX = 14;
+    const rightColumnX = 155;
+    let leftY = 35;  // Zmniejszony górny margin
 
-    autoTable(doc, {
-      head: [["Okres", "Nastroj (srednia)", "Energia (srednia)"]],
-      body: metricsData,
-      startY: 25,
-      theme: 'grid',
-      headStyles: { fillColor: [220, 220, 220], textColor: 50 },
-      styles: { fontSize: 10, halign: 'center' }
-    });
-
-    let finalY = doc.lastAutoTable.finalY + 15;
+    // LEWA KOLUMNA: Refleksje i Wnioski
     doc.setFontSize(14);
-    doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), 14, finalY);
-    finalY += 8;
+    doc.setTextColor(0, 0, 0);
+    doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), leftColumnX, leftY);
+    leftY += 8;
 
     const s = weeklyData?.summaries || {};
     const summaryItems = [
@@ -191,18 +192,40 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       { label: "Cel na przyszly tydzien:", value: s.nextWeekGoal }
     ];
 
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     summaryItems.forEach((item) => {
       doc.setFont("helvetica", "bold");
-      doc.text(removePolishAccents(item.label), 14, finalY);
-      finalY += 6;
+      doc.text(removePolishAccents(item.label), leftColumnX, leftY);
+      leftY += 5;
       doc.setFont("helvetica", "normal");
-      const splitText = doc.splitTextToSize(removePolishAccents(item.value || "- brak wpisu -"), 260);
-      doc.text(splitText, 14, finalY);
-      finalY += (splitText.length * 5) + 8;
-      // Przeniesienie na nową stronę jeśli brakuje miejsca
-      if (finalY > 150) { doc.addPage(); finalY = 20; }
+      const splitText = doc.splitTextToSize(removePolishAccents(item.value || "- brak wpisu -"), 130);
+      doc.text(splitText, leftColumnX, leftY);
+      leftY += (splitText.length * 4) + 4;  // Zmniejszony odstęp dolny (było +6)
     });
+
+    // PRAWA KOLUMNA: Tabela nastroju i energii
+    // Wyrównana do dołu sekcji Refleksje
+    const metricsData = [
+      ["Poczatek Tygodnia", `Nastroj: ${weeklyData?.moodStart ?? 0}/10`, `Energia: ${weeklyData?.energyStart ?? 0}/10`],
+      ["Koniec Tygodnia", `Nastroj: ${weeklyData?.moodEnd ?? 0}/10`, `Energia: ${weeklyData?.energyEnd ?? 0}/10`]
+    ];
+    
+    // Wyrównaj tabelę do dołu sekcji refleksji
+    const tableHeight = 26;
+    const rightY = leftY - tableHeight;
+
+    autoTable(doc, {
+      head: [["Okres", "Nastroj", "Energia"]],
+      body: metricsData,
+      startY: rightY,
+      margin: { left: rightColumnX },
+      theme: 'grid',
+      headStyles: { fillColor: [220, 220, 220], textColor: 50, fontSize: 9 },
+      styles: { fontSize: 9, halign: 'center', cellPadding: 2 },
+      tableWidth: 120
+    });
+
+    let finalY = Math.max(leftY, doc.lastAutoTable.finalY) + 10;  // Zmniejszony dolny margines (było +15)
 
     // --- TYGODNIOWA MAPA SKUPIENIA Z LITERAMI ---
     if (finalY > 130) { doc.addPage(); finalY = 20; }
@@ -293,9 +316,18 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       doc.setTextColor(79, 70, 229);
       doc.text(removePolishAccents(`${day} (${dateStringPL})`), 14, 15);
       doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10); 
+      doc.text("Katarzyna Walenko", 14, 21);
+      
+      // Add QR code in top right corner (zmniejszony o 1/3)
+      doc.addImage(qrCodeImage, 'PNG', 254, 8, 16.67, 16.67);
+      doc.setFontSize(8); 
+      doc.text("Zobacz wiecej", 254, 27);
+      doc.text("w aplikacji", 256, 31);
 
       doc.setFontSize(12);
-      doc.text(removePolishAccents("Plan Aktywizacji (Glowny Cel)"), 14, 25);
+      doc.setFont("helvetica", "normal");
+      doc.text(removePolishAccents("Plan Aktywizacji (Glowny Cel)"), 14, 28);
 
       const activityRow = [
         removePolishAccents(dayData.activity || ""),
@@ -308,7 +340,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       autoTable(doc, {
         head: [["Aktywnosc", "Kategoria", "Wykonano", "Nastroj po", "Energia po"]],
         body: [activityRow],
-        startY: 30,
+        startY: 33,
         theme: 'grid',
         headStyles: { fillColor: [79, 70, 229] },
         styles: { fontSize: 10 }
