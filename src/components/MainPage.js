@@ -512,11 +512,11 @@ function MainPage() {
                     <div className="flex flex-wrap gap-3 items-end">
                       {activities.map(act => {
                         let bgColor = "bg-info";
-                        let textColor = "text-white";
+                        let textColor = "text-info-content";
                         let customStyle = null;
                         let letter = "OK";
-                        if (act.focusState === 'chaos') { bgColor = "bg-warning"; textColor = "text-white"; customStyle = null; letter = "CH"; }
-                        if (act.focusState === 'hiperfokus') { bgColor = "bg-primary"; textColor = "text-white"; customStyle = null; letter = "F"; }
+                        if (act.focusState === 'chaos') { bgColor = "bg-warning"; textColor = "text-warning-content"; customStyle = null; letter = "CH"; }
+                        if (act.focusState === 'hiperfokus') { bgColor = "bg-primary"; textColor = "text-primary-content"; customStyle = null; letter = "F"; }
 
                         return (
                           <div
