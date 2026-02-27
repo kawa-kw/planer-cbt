@@ -209,7 +209,7 @@ function MainPage() {
             const val = data.cell.raw;
             if (val === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
             else if (val === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-            else if (val !== '-') { data.cell.styles.textColor = [54, 203, 148]; data.cell.styles.fontStyle = 'bold'; }
+            else if (val !== '-') { data.cell.styles.textColor = [14, 116, 144]; data.cell.styles.fontStyle = 'bold'; }
           }
         }
       }
