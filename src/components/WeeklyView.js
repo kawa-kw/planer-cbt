@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, onSnapshot, updateDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 import DayPlanDetail from "./DayPlanDetail";
 import { getAdjacentWeekKey, getDateFromWeekKey, getFullWeekRange, getWeekKey, removePolishAccents } from "../helpers";
@@ -12,6 +13,7 @@ import qrCodeImage from '../assets/images/cbt-qr-code.png';
 const DAYS = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
 const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
+  const chartRef = useRef(null);
   const [weeklyData, setWeeklyData] = useState(null);
   const [weeklyActivities, setWeeklyActivities] = useState([]);
   const [currentWeekKey, setCurrentWeekKey] = useState("");
@@ -46,10 +48,6 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         const initialData = {
           userId: targetUid,
           weekKey: currentWeekKey,
-          moodStart: 0,
-          energyStart: 0,
-          moodEnd: 0,
-          energyEnd: 0,
           plannedActivities: DAYS.reduce((acc, day) => ({
             ...acc, [day]: {
               activity: "",
@@ -141,6 +139,20 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   };
 
   const exportWeeklyToPDF = async () => {
+    // Generate chart image first
+    let chartImageData = null;
+    if (chartRef.current && weeklyData?.plannedActivities) {
+      try {
+        const canvas = await html2canvas(chartRef.current, {
+          backgroundColor: '#ffffff',
+          scale: 2
+        });
+        chartImageData = canvas.toDataURL('image/png');
+      } catch (error) {
+        console.error('Error generating chart image:', error);
+      }
+    }
+
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
@@ -157,32 +169,55 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       console.log("Błąd pobierania aktywności dziennych:", error);
     }
 
-    const okTextColor = [4, 55, 36];
+    const okTextColor = [12, 74, 110];
 
     // STRONA 1: PODSUMOWANIE TYGODNIA
-    doc.setFontSize(18);
+    // Nagłówek po lewej
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(79, 70, 229);
     doc.text(removePolishAccents(`Podsumowanie Tygodnia: ${weekRange}`), 14, 15);
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10); 
-    doc.text("Katarzyna Walenko", 14, 22);
     
-    // Add QR code in top right corner (powiększony o 1/3)
-    doc.addImage(qrCodeImage, 'PNG', 246, 8, 33.33, 33.33);
+    // Prawa kolumna - wyśrodkowana względem jednej osi pionowej (z marginesem od prawej)
+    const rightMargin = 10;
+    const qrCodeSize = 40;
+    const qrCodeX = 297 - rightMargin - qrCodeSize - 10; // 243 - z marginesem
+    const centerX = qrCodeX + (qrCodeSize / 2); // Środek dla wyrównania elementów
+    
+    // Imię i nazwisko (szare, większe, wyrównane do linii nagłówka)
+    doc.setTextColor(128, 128, 128);
+    doc.setFontSize(14); 
+    doc.setFont("helvetica", "bold");
+    doc.text("Katarzyna Walenko", centerX, 16, { align: 'center' });
+    
+    // QR code pod imieniem (40mm × 40mm)
+    doc.addImage(qrCodeImage, 'PNG', qrCodeX, 20, qrCodeSize, qrCodeSize);
+    
+    // Napisy pod QR code (wyśrodkowane)
     doc.setFontSize(8); 
-    doc.text("Zobacz wiecej", 252, 43);
-    doc.text("w aplikacji", 254, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Zobacz wiecej w aplikacji", centerX, 62, { align: 'center' });
+    doc.text("CBT Planer", centerX, 66, { align: 'center' });
 
-    // Layout: Refleksje po lewej, tabela nastroju po prawej
-    const leftColumnX = 14;
-    const rightColumnX = 155;
-    let leftY = 35;  // Zmniejszony górny margin
+    let currentY = 25; // Wykres pod tytułem
 
-    // LEWA KOLUMNA: Refleksje i Wnioski
+    // Wykres nastroju wyrównany do lewej krawędzi (160mm × 80mm)
+    if (chartImageData) {
+      const chartWidth = 160;
+      const chartHeight = 80;
+      const chartX = 2; // Wyrównany do lewej krawędzi
+      
+      doc.addImage(chartImageData, 'PNG', chartX, currentY, chartWidth, chartHeight);
+      currentY += chartHeight + 15; // Margines dolny po wykresie
+    }
+
+    // Refleksje i Wnioski pod wykresem (pełna szerokość)
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), leftColumnX, leftY);
-    leftY += 8;
+    doc.setFont("helvetica", "normal");
+    doc.text(removePolishAccents("Refleksje i Wnioski (CBT)"), 14, currentY);
+    currentY += 8;
 
     const s = weeklyData?.summaries || {};
     const summaryItems = [
@@ -195,37 +230,15 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.setFontSize(10);
     summaryItems.forEach((item) => {
       doc.setFont("helvetica", "bold");
-      doc.text(removePolishAccents(item.label), leftColumnX, leftY);
-      leftY += 5;
+      doc.text(removePolishAccents(item.label), 14, currentY);
+      currentY += 5;
       doc.setFont("helvetica", "normal");
-      const splitText = doc.splitTextToSize(removePolishAccents(item.value || "- brak wpisu -"), 130);
-      doc.text(splitText, leftColumnX, leftY);
-      leftY += (splitText.length * 4) + 4;  // Zmniejszony odstęp dolny (było +6)
+      const splitText = doc.splitTextToSize(removePolishAccents(item.value || "- brak wpisu -"), 260);
+      doc.text(splitText, 14, currentY);
+      currentY += (splitText.length * 4) + 4;
     });
 
-    // PRAWA KOLUMNA: Tabela nastroju i energii
-    // Wyrównana do dołu sekcji Refleksje
-    const metricsData = [
-      ["Poczatek Tygodnia", `Nastroj: ${weeklyData?.moodStart ?? 0}/10`, `Energia: ${weeklyData?.energyStart ?? 0}/10`],
-      ["Koniec Tygodnia", `Nastroj: ${weeklyData?.moodEnd ?? 0}/10`, `Energia: ${weeklyData?.energyEnd ?? 0}/10`]
-    ];
-    
-    // Wyrównaj tabelę do dołu sekcji refleksji
-    const tableHeight = 26;
-    const rightY = leftY - tableHeight;
-
-    autoTable(doc, {
-      head: [["Okres", "Nastroj", "Energia"]],
-      body: metricsData,
-      startY: rightY,
-      margin: { left: rightColumnX },
-      theme: 'grid',
-      headStyles: { fillColor: [220, 220, 220], textColor: 50, fontSize: 9 },
-      styles: { fontSize: 9, halign: 'center', cellPadding: 2 },
-      tableWidth: 120
-    });
-
-    let finalY = Math.max(leftY, doc.lastAutoTable.finalY) + 10;  // Zmniejszony dolny margines (było +15)
+    let finalY = currentY + 10;
 
     // --- TYGODNIOWA MAPA SKUPIENIA Z LITERAMI ---
     if (finalY > 130) { doc.addPage(); finalY = 20; }
@@ -261,7 +274,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           } else if (state === 'hiperfokus') {
             row.push({ content: 'F', styles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' } });
           } else {
-            row.push({ content: 'OK', styles: { fillColor: [195, 239, 223], textColor: [4, 55, 36], fontStyle: 'bold' } });
+            row.push({ content: 'OK', styles: { fillColor: [224, 242, 254], textColor: [12, 74, 110], fontStyle: 'bold' } });
           }
         } else {
           row.push({ content: '', styles: { fillColor: [245, 245, 245] } });
@@ -289,8 +302,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, legendY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, legendY + 3.5);
 
-    doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, legendY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
-    doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
+    doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(58, 191, 248); doc.rect(36, legendY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+    doc.setTextColor(12, 74, 110); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Balans", 43, legendY + 3.5);
 
     doc.setFillColor(147, 51, 234); doc.rect(60, legendY, 5, 5, 'F');
@@ -313,21 +326,14 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(79, 70, 229);
+      doc.setTextColor(0,0,0);
       doc.text(removePolishAccents(`${day} (${dateStringPL})`), 14, 15);
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(10); 
-      doc.text("Katarzyna Walenko", 14, 21);
-      
       // Add QR code in top right corner (zmniejszony o 1/3)
-      doc.addImage(qrCodeImage, 'PNG', 254, 8, 16.67, 16.67);
-      doc.setFontSize(8); 
-      doc.text("Zobacz wiecej", 254, 27);
-      doc.text("w aplikacji", 256, 31);
+      doc.addImage(qrCodeImage, 'PNG', 260, 10, 16.67, 16.67);
 
       doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text(removePolishAccents("Plan Aktywizacji (Glowny Cel)"), 14, 28);
+      doc.setFont("helvetica", "bold");
+      doc.text(removePolishAccents("Plan Aktywizacji (Glowny Cel)"), 14, 30);
 
       const activityRow = [
         removePolishAccents(dayData.activity || ""),
@@ -340,7 +346,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       autoTable(doc, {
         head: [["Aktywnosc", "Kategoria", "Wykonano", "Nastroj po", "Energia po"]],
         body: [activityRow],
-        startY: 33,
+        startY: 35,
         theme: 'grid',
         headStyles: { fillColor: [79, 70, 229] },
         styles: { fontSize: 10 }
@@ -389,7 +395,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           let letter = 'OK';
           if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'CH'; }
           else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
-          else { doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); letter = 'OK'; }
+          else { doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(58, 191, 248); letter = 'OK'; }
 
           doc.rect(currentX, mapY + 7, 10, 5, 'F');
           if (state === 'spokój' || !state) { doc.setGState(new doc.GState({opacity: 1.0})); }
@@ -415,8 +421,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, mapY + 3.5, { align: 'center' });
         doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, mapY + 3.5);
 
-        doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
-        doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
+        doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(58, 191, 248); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+        doc.setTextColor(12, 74, 110); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
         doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Balans", 43, mapY + 3.5);
 
         doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
@@ -466,7 +472,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
               const value = data.cell.raw;
               if (value === 'chaos') { data.cell.styles.textColor = [251, 191, 36]; data.cell.styles.fontStyle = 'bold'; }
               else if (value === 'hiperfokus') { data.cell.styles.textColor = [147, 51, 234]; data.cell.styles.fontStyle = 'bold'; }
-              else { data.cell.styles.textColor = [54, 203, 148]; data.cell.styles.fontStyle = 'bold'; }
+              else { data.cell.styles.textColor = [58, 191, 248]; data.cell.styles.fontStyle = 'bold'; }
             }
           }
         }
@@ -561,7 +567,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
                     let customStyle = null;
                     if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "CH"; }
                     else if (state === "hiperfokus") { cellClass = "bg-primary text-primary-content"; label = "F"; }
-                    else if (state) { customStyle = {backgroundColor: '#36cb944d', color: '#043724'}; label = "OK"; }
+                    else if (state) { cellClass = "bg-info/20 text-info"; label = "OK"; }
 
                     return (
                       <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} !p-0 md:!p-2`} style={customStyle}>
@@ -576,7 +582,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs mt-3">
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (CH)</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded inline-block" style={{backgroundColor: '#36cb944d'}} /><span>Balans (OK)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded inline-block bg-info/20" /><span>Balans (OK)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-primary inline-block" /><span>Hiperfokus (F)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>
         </div>
@@ -585,46 +591,17 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         <MoodChart className="hidden lg:block" plannedActivities={weeklyData?.plannedActivities} />
       </div>
 
-      {activeDayIndex === 0 && (
-        <section className="animate-fade-in">
-          <h2 className="text-xl font-bold text-primary mb-6 text-center">
-            Start Tygodnia
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="card bg-base-200/50 p-4">
-              <h3 className="font-bold mb-2">Nastrój na początku tygodnia (0-10): {weeklyData?.moodStart || 0}</h3>
-              <input
-                type="range" min="0" max="10" className="range range-primary"
-                disabled={isReadOnly}
-                value={weeklyData?.moodStart || 0}
-                onChange={(e) => handleWeeklyUpdate({ moodStart: Number(e.target.value) }, true)}
-              />
-              <div className="w-full flex justify-between text-xs px-2 mt-2 opacity-50">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
-            </div>
-            <div className="card bg-base-200/50 p-4">
-              <h3 className="font-bold mb-2">Energia na początku tygodnia (0-10): {weeklyData?.energyStart || 0}</h3>
-              <input
-                type="range" min="0" max="10" className="range range-secondary"
-                disabled={isReadOnly}
-                value={weeklyData?.energyStart || 0}
-                onChange={(e) => handleWeeklyUpdate({ energyStart: Number(e.target.value) }, true)}
-              />
-              <div className="w-full flex justify-between text-xs px-2 mt-2 opacity-50">
-                <span>0</span><span>5</span><span>10</span>
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* Hidden chart for PDF export */}
+      {weeklyData?.plannedActivities && (
+        <div ref={chartRef} style={{ position: 'absolute', left: '-9999px', width: '800px', height: '400px', backgroundColor: '#ffffff', padding: '20px' }}>
+          <MoodChart plannedActivities={weeklyData.plannedActivities} />
+        </div>
       )}
 
       {activeDayIndex === 6 && (
         <section className="animate-fade-in">
           <WeeklySummary
             summaries={weeklyData?.summaries}
-            moodEnd={weeklyData?.moodEnd}
-            energyEnd={weeklyData?.energyEnd}
             onUpdate={handleWeeklyUpdate}
             isReadOnly={isReadOnly}
           />
