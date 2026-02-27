@@ -157,7 +157,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       console.log("Błąd pobierania aktywności dziennych:", error);
     }
 
-    const okTextColor = [4, 55, 36];
+    const okTextColor = [14, 116, 144];
 
     // STRONA 1: PODSUMOWANIE TYGODNIA
     doc.setFontSize(18);
@@ -289,8 +289,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, legendY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, legendY + 3.5);
 
-    doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, legendY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
-    doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
+    doc.setGState(new doc.GState({opacity: 0.5})); doc.setFillColor(58, 191, 248); doc.rect(36, legendY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+    doc.setTextColor(14, 116, 144); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, legendY + 3.5, { align: 'center' });
     doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Balans", 43, legendY + 3.5);
 
     doc.setFillColor(147, 51, 234); doc.rect(60, legendY, 5, 5, 'F');
@@ -389,7 +389,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           let letter = 'OK';
           if (state === 'chaos') { doc.setFillColor(251, 191, 36); letter = 'CH'; }
           else if (state === 'hiperfokus') { doc.setFillColor(147, 51, 234); letter = 'F'; }
-          else { doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); letter = 'OK'; }
+          else { doc.setGState(new doc.GState({opacity: 0.5})); doc.setFillColor(58, 191, 248); letter = 'OK'; }
 
           doc.rect(currentX, mapY + 7, 10, 5, 'F');
           if (state === 'spokój' || !state) { doc.setGState(new doc.GState({opacity: 1.0})); }
@@ -415,8 +415,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont("helvetica", "bold"); doc.text("CH", 16.5, mapY + 3.5, { align: 'center' });
         doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Chaos", 21, mapY + 3.5);
 
-        doc.setGState(new doc.GState({opacity: 0.3})); doc.setFillColor(54, 203, 148); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
-        doc.setTextColor(4, 55, 36); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
+        doc.setGState(new doc.GState({opacity: 0.5})); doc.setFillColor(58, 191, 248); doc.rect(36, mapY, 5, 5, 'F'); doc.setGState(new doc.GState({opacity: 1.0}));
+        doc.setTextColor(14, 116, 144); doc.setFontSize(5); doc.setFont("helvetica", "bold"); doc.text("OK", 38.5, mapY + 3.5, { align: 'center' });
         doc.setTextColor(0, 0, 0); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text("Balans", 43, mapY + 3.5);
 
         doc.setFillColor(147, 51, 234); doc.rect(60, mapY, 5, 5, 'F');
@@ -561,7 +561,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
                     let customStyle = null;
                     if (state === "chaos") { cellClass = "bg-warning text-warning-content"; label = "CH"; }
                     else if (state === "hiperfokus") { cellClass = "bg-primary text-primary-content"; label = "F"; }
-                    else if (state) { customStyle = {backgroundColor: '#36cb944d', color: '#043724'}; label = "OK"; }
+                    else if (state) { cellClass = "bg-info text-info-content"; label = "OK"; }
 
                     return (
                       <td key={`${row.day}-${idx}`} className={`text-center ${cellClass} !p-0 md:!p-2`} style={customStyle}>
@@ -576,7 +576,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs mt-3">
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-warning inline-block" /><span>Chaos (CH)</span></div>
-          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded inline-block" style={{backgroundColor: '#36cb944d'}} /><span>Balans (OK)</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-info inline-block" /><span>Balans (OK)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-primary inline-block" /><span>Hiperfokus (F)</span></div>
           <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-base-200 inline-block" /><span>Brak danych</span></div>
         </div>
