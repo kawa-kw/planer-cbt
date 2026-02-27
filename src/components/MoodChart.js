@@ -30,7 +30,7 @@ const MoodChart = ({ className, plannedActivities }) => {
   });
 
   return (
-    <div className={className}>
+    <div className={className} style={{ width: '100%', height: '100%' }}>
       <h3 className="text-lg font-bold text-center mb-5 text-base-content/70">Wykres nastroju w trakcie tygodnia (średnia dobowa)</h3>
       <div className="relative h-[300px] w-full">
         <span className="badge badge-ghost text-[10px] absolute right-2 top-0">Skala 0-10</span>
