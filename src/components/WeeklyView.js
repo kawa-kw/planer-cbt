@@ -261,7 +261,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
           } else if (state === 'hiperfokus') {
             row.push({ content: 'F', styles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' } });
           } else {
-            row.push({ content: 'OK', styles: { fillColor: [195, 239, 223], textColor: [4, 55, 36], fontStyle: 'bold' } });
+            row.push({ content: 'OK', styles: { fillColor: [186, 230, 253], textColor: [14, 116, 144], fontStyle: 'bold' } });
           }
         } else {
           row.push({ content: '', styles: { fillColor: [245, 245, 245] } });
