@@ -25,7 +25,7 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
         setSelectedNotes([]);
         localStorage.setItem(`selectedNotes_${currentWeek}`, JSON.stringify([]));
       }
-    }, 60 * 1000); // sprawdzaj co minutę
+    }, 60 * 60 * 1000); // sprawdzaj co godzinę
     return () => clearInterval(interval);
   }, [weekKey]);
 
