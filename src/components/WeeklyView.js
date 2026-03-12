@@ -313,6 +313,43 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     doc.setFillColor(245, 245, 245); doc.rect(88, legendY, 5, 5, 'F'); doc.text("Brak wpisu", 95, legendY + 3.5);
     // ------------------------------------------------------------------
 
+    // Wybrane notatki do raportu tygodniowego
+    try {
+      const selectedNotes = JSON.parse(localStorage.getItem(`selectedNotes_${currentWeekKey}`) || "[]");
+      const allNotes = JSON.parse(localStorage.getItem('allNotes') || "[]");
+      const notesToExport = allNotes.filter(note => selectedNotes.includes(note.id));
+      if (notesToExport.length > 0) {
+        let notesY = legendY + 20;
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.text(removePolishAccents("Notatki/przemyślenia:"), 14, notesY);
+        notesY += 7;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        notesToExport.forEach(note => {
+          // Wyboldowany tytuł
+          doc.setFont("helvetica", "bold");
+          doc.text(removePolishAccents(`• ${note.title} (${note.dateString})`), 14, notesY);
+          notesY += 5;
+          doc.setFont("helvetica", "normal");
+          const splitContent = doc.splitTextToSize(removePolishAccents(note.content || ""), 260);
+          // Sprawdź czy notatka zmieści się na stronie, jeśli nie - dodaj nową
+          const pageHeight = doc.internal.pageSize.getHeight();
+          if (notesY + (splitContent.length * 4) + 10 > pageHeight - 20) {
+            doc.addPage();
+            notesY = 20;
+          }
+          // Zwiększony line-height dla treści
+          const lineHeight = 6;
+          splitContent.forEach(line => {
+            doc.text(line, 18, notesY);
+            notesY += lineHeight;
+          });
+          notesY += 4;
+        });
+      }
+    } catch (e) { /* ignore */ }
+
     for (let i = 0; i < DAYS.length; i++) {
       const day = DAYS[i];
       doc.addPage();

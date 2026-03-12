@@ -1,7 +1,49 @@
+// ...existing code...
 import React, { useState, useEffect } from 'react';
+import { getWeekKey } from "../helpers";
 import { collection, addDoc, query, where, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 
 const NotesView = ({ db, targetUid, isReadOnly }) => {
+  // Stan wybranych notatek do raportu tygodniowego
+  const [selectedNotes, setSelectedNotes] = useState([]);
+  const [weekKey, setWeekKey] = useState("");
+
+  // Synchronizacja z localStorage na podstawie tygodnia
+  useEffect(() => {
+    const currentWeek = getWeekKey(new Date());
+    setWeekKey(currentWeek);
+    const stored = localStorage.getItem(`selectedNotes_${currentWeek}`);
+    setSelectedNotes(stored ? JSON.parse(stored) : []);
+  }, []);
+
+  // Reset zaznaczeń w poniedziałek (zmiana tygodnia)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentWeek = getWeekKey(new Date());
+      if (currentWeek !== weekKey) {
+        setWeekKey(currentWeek);
+        setSelectedNotes([]);
+        localStorage.setItem(`selectedNotes_${currentWeek}`, JSON.stringify([]));
+      }
+    }, 60 * 1000); // sprawdzaj co minutę
+    return () => clearInterval(interval);
+  }, [weekKey]);
+
+  // Zapisuj stan do localStorage przy zmianie
+  useEffect(() => {
+    if (weekKey) {
+      localStorage.setItem(`selectedNotes_${weekKey}`, JSON.stringify(selectedNotes));
+    }
+  }, [selectedNotes, weekKey]);
+
+  // Obsługa zaznaczania checkboxa
+  const handleSelectNote = (id) => {
+    setSelectedNotes((prev) =>
+      prev.includes(id)
+        ? prev.filter((noteId) => noteId !== id)
+        : [...prev, id]
+    );
+  };
   const [notes, setNotes] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -30,6 +72,8 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
         ...doc.data()
       }));
       setNotes(notesData);
+      // Zapisz wszystkie notatki do localStorage
+      localStorage.setItem('allNotes', JSON.stringify(notesData));
     }, (error) => {
       console.error("Błąd pobierania notatek:", error);
     });
@@ -139,11 +183,23 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
                       {note.dateString}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleDeleteNote(note.id)}
-                    className="btn btn-ghost btn-circle btn-xs hover:opacity-100 tooltip tooltip-left"
-                    data-tip="Usuń notatkę"
-                  >✕</button>
+                  <div className="flex flex-col items-end gap-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedNotes && selectedNotes.includes(note.id)}
+                        onChange={() => handleSelectNote(note.id)}
+                        className="checkbox checkbox-accent"
+                        aria-label="Dodaj do raportu tygodniowego"
+                      />
+                      <span className="text-xs">Dołącz do raportu</span>
+                    </label>
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="btn btn-ghost btn-circle btn-xs hover:opacity-100 tooltip tooltip-left"
+                      data-tip="Usuń notatkę"
+                    >✕</button>
+                  </div>
                 </div>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-base-content/80">
                   {note.content}
