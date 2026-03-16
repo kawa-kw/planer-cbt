@@ -15,6 +15,7 @@ import autoTable from 'jspdf-autotable';
 import WeeklyView from "./WeeklyView";
 import qrCodeImage from '../assets/images/cbt-qr-code.png';
 import NotesView from "./NotesView";
+import { addDaysToIsoDate, parseTimeToMinutes } from "../helpers";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAWvWHUoQhdeL7PicXgMwOTRfSWVrVm9I",
@@ -43,6 +44,16 @@ const AngleIcon = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
   </svg>
 );
+
+const CBT_DAY_START_MINUTES = 7 * 60;
+const CBT_DAY_END_EXCLUSIVE_MINUTES = 3 * 60; // 02:59 włącznie
+
+const getCbtTimelineSortKey = (time) => {
+  const minutes = parseTimeToMinutes(time);
+  if (minutes === null) return Number.POSITIVE_INFINITY;
+  if (minutes >= CBT_DAY_START_MINUTES) return minutes - CBT_DAY_START_MINUTES;
+  return (24 * 60 - CBT_DAY_START_MINUTES) + minutes;
+};
 
 function MainPage() {
   const [activities, setActivities] = useState([]);
@@ -88,21 +99,55 @@ function MainPage() {
       setActivities([]);
       return;
     }
-    const q = query(
+    const nextDate = addDaysToIsoDate(selectedDate, 1);
+
+    let selectedDayActivities = [];
+    let nextDayActivities = [];
+
+    const recompute = () => {
+      const inSelectedDayWindow = selectedDayActivities.filter((act) => {
+        const minutes = parseTimeToMinutes(act.hour);
+        return minutes !== null && minutes >= CBT_DAY_START_MINUTES;
+      });
+      const inNextDayWindow = nextDayActivities.filter((act) => {
+        const minutes = parseTimeToMinutes(act.hour);
+        return minutes !== null && minutes < CBT_DAY_END_EXCLUSIVE_MINUTES;
+      });
+
+      const merged = [...inSelectedDayWindow, ...inNextDayWindow];
+      merged.sort((a, b) => getCbtTimelineSortKey(a.hour) - getCbtTimelineSortKey(b.hour));
+      setActivities(merged);
+    };
+
+    const qSelected = query(
       collection(db, "activities"),
       where("userId", "==", targetUid),
       where("date", "==", selectedDate)
     );
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const data = querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      }));
-      setActivities(data.sort((a, b) => a.hour.localeCompare(b.hour)));
+    const qNext = query(
+      collection(db, "activities"),
+      where("userId", "==", targetUid),
+      where("date", "==", nextDate)
+    );
+
+    const unsubSelected = onSnapshot(qSelected, (querySnapshot) => {
+      selectedDayActivities = querySnapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+      recompute();
     }, (error) => {
-      console.error("Błąd pobierania danych:", error);
+      console.error("Błąd pobierania danych (dzień wybrany):", error);
     });
-    return () => unsubscribe();
+
+    const unsubNext = onSnapshot(qNext, (querySnapshot) => {
+      nextDayActivities = querySnapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+      recompute();
+    }, (error) => {
+      console.error("Błąd pobierania danych (następny dzień):", error);
+    });
+
+    return () => {
+      unsubSelected();
+      unsubNext();
+    };
   }, [selectedDate, targetUid]);
 
   const handleLogin = (e) => {
@@ -129,13 +174,19 @@ function MainPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const minutes = parseTimeToMinutes(formData.hour);
+      const nextDate = addDaysToIsoDate(selectedDate, 1);
+      const effectiveDate = editingId
+        ? (formData.date || selectedDate)
+        : (minutes !== null && minutes < CBT_DAY_END_EXCLUSIVE_MINUTES ? nextDate : selectedDate);
+
       const payload = {
         ...formData,
         userId: user.uid,
         pleasure: Number(formData.pleasure),
         mastery: Number(formData.mastery),
         emotionIntensity: Number(formData.emotionIntensity),
-        date: selectedDate
+        date: effectiveDate
       };
       if (editingId) {
         await updateDoc(doc(db, "activities", editingId), payload);

@@ -5,7 +5,7 @@ import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
 import DayPlanDetail from "./DayPlanDetail";
-import { getAdjacentWeekKey, getDateFromWeekKey, getFullWeekRange, getWeekKey, removePolishAccents } from "../helpers";
+import { addDaysToIsoDate, getAdjacentWeekKey, getDateFromWeekKey, getFullWeekRange, getWeekKey, parseTimeToMinutes, removePolishAccents } from "../helpers";
 import WeeklySummary from "./WeeklySummary";
 import MoodChart from "./MoodChart";
 import qrCodeImage from '../assets/images/cbt-qr-code.png';
@@ -98,6 +98,29 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
     return String(hour).padStart(2, "0");
   });
 
+  const CBT_DAY_START_MINUTES = 7 * 60;
+  const CBT_DAY_END_EXCLUSIVE_MINUTES = 3 * 60; // 02:59 włącznie
+
+  const getCbtTimelineSortKey = (time) => {
+    const minutes = parseTimeToMinutes(time);
+    if (minutes === null) return Number.POSITIVE_INFINITY;
+    if (minutes >= CBT_DAY_START_MINUTES) return minutes - CBT_DAY_START_MINUTES;
+    return (24 * 60 - CBT_DAY_START_MINUTES) + minutes;
+  };
+
+  const getCbtDayWindowActivities = (dateIso, sourceActivities) => {
+    const nextDate = addDaysToIsoDate(dateIso, 1);
+    const selectedDay = sourceActivities.filter((act) => {
+      const minutes = parseTimeToMinutes(act.hour);
+      return act.date === dateIso && minutes !== null && minutes >= CBT_DAY_START_MINUTES;
+    });
+    const nextDay = sourceActivities.filter((act) => {
+      const minutes = parseTimeToMinutes(act.hour);
+      return act.date === nextDate && minutes !== null && minutes < CBT_DAY_END_EXCLUSIVE_MINUTES;
+    });
+    return [...selectedDay, ...nextDay];
+  };
+
   const getWeekDateIso = (index) => {
     const dateObj = getDateFromWeekKey(currentWeekKey, index);
     const yyyy = dateObj.getFullYear();
@@ -108,7 +131,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
 
   const weeklyFocusRows = currentWeekKey ? DAYS.map((day, index) => {
     const dateIso = getWeekDateIso(index);
-    const dailyActs = weeklyActivities.filter(act => act.date === dateIso);
+    const dailyActs = getCbtDayWindowActivities(dateIso, weeklyActivities);
     const statesByHour = hours.map(h => dailyActs.find(act => act.hour && act.hour.startsWith(`${h}:`))?.focusState);
     return { day, statesByHour };
   }) : [];
@@ -260,7 +283,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
       const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
       const dd = String(dateObj.getDate()).padStart(2, '0');
       const dateStringISO = `${yyyy}-${mm}-${dd}`;
-      const dailyActs = allDailyActivities.filter(act => act.date === dateStringISO);
+      const dailyActs = getCbtDayWindowActivities(dateStringISO, allDailyActivities);
 
       const row = [removePolishAccents(day)];
 
@@ -410,9 +433,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
         columnStyles: { 3: { cellWidth: 100 } }
       });
 
-      const dailyActivities = allDailyActivities
-        .filter(act => act.date === dateStringISO)
-        .sort((a, b) => (a.hour || '').localeCompare(b.hour || ''));
+      const dailyActivities = getCbtDayWindowActivities(dateStringISO, allDailyActivities)
+        .sort((a, b) => getCbtTimelineSortKey(a.hour) - getCbtTimelineSortKey(b.hour));
 
       let dynamicY = doc.lastAutoTable.finalY + 15;
 

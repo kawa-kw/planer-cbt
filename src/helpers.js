@@ -74,3 +74,29 @@ export const removePolishAccents = (str) => {
   };
   return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, (m) => map[m]);
 };
+
+/**
+ * Dodaje liczbę dni do daty w formacie ISO (YYYY-MM-DD), bez pułapek stref czasowych.
+ */
+export const addDaysToIsoDate = (isoDate, deltaDays) => {
+  if (!isoDate) return isoDate;
+  const [year, month, day] = isoDate.split("-").map((part) => Number(part));
+  const date = new Date(year, (month || 1) - 1, day || 1);
+  date.setDate(date.getDate() + deltaDays);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+/**
+ * Zamienia "HH:MM" na liczbę minut od północy.
+ */
+export const parseTimeToMinutes = (time) => {
+  if (!time || typeof time !== "string") return null;
+  const [hh, mm] = time.split(":");
+  const hours = Number(hh);
+  const minutes = Number(mm);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+};
