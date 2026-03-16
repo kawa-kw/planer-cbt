@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* Globalnie mniejsze tooltipy (daisyUI) */
+  .tooltip::before {
+    @apply text-[11px] leading-tight px-2 py-1;
+  }
+}
+
 
 body {
   margin: 0;

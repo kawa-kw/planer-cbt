@@ -1,7 +1,7 @@
 // ...existing code...
 import React, { useState, useEffect } from 'react';
 import { getWeekKey } from "../helpers";
-import { collection, addDoc, query, where, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 const NotesView = ({ db, targetUid, isReadOnly }) => {
   // Stan wybranych notatek do raportu tygodniowego
@@ -48,6 +48,10 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Pobieranie notatek (tylko dla właściciela - reguły Firebase to wymuszą)
   useEffect(() => {
@@ -72,6 +76,7 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
         ...doc.data()
       }));
       setNotes(notesData);
+      setSelectedNotes((prev) => prev.filter((id) => notesData.some((n) => n.id === id)));
       // Zapisz wszystkie notatki do localStorage
       localStorage.setItem('allNotes', JSON.stringify(notesData));
     }, (error) => {
@@ -114,6 +119,40 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
     }
   };
 
+  const openEditNote = (note) => {
+    setEditingNoteId(note.id);
+    setEditTitle(note.title || "");
+    setEditContent(note.content || "");
+  };
+
+  const closeEditNote = () => {
+    setEditingNoteId(null);
+    setEditTitle("");
+    setEditContent("");
+  };
+
+  const handleUpdateNote = async () => {
+    if (!editingNoteId) return;
+    if (!editTitle.trim() || !editContent.trim()) return;
+
+    setIsSavingEdit(true);
+    let didSave = false;
+    try {
+      await updateDoc(doc(db, "notes", editingNoteId), {
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        updatedAt: serverTimestamp(),
+      });
+      didSave = true;
+    } catch (error) {
+      console.error("Błąd edycji notatki:", error);
+      alert("Nie udało się zapisać zmian. Sprawdź połączenie.");
+    } finally {
+      setIsSavingEdit(false);
+      if (didSave) closeEditNote();
+    }
+  };
+
   // Jeśli ktoś jakimś cudem wejdzie tu w trybie readonly, wyświetlamy komunikat
   if (isReadOnly) {
     return (
@@ -125,6 +164,58 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8 space-y-8 lg:space-y-0 max-w-4xl mx-auto animate-fade-in lg:flex lg:max-w-full lg:justify-start lg:items-stretch lg:gap-6">
+      {/* Modal edycji */}
+      {editingNoteId && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg text-secondary">Edytuj notatkę</h3>
+            <p className="text-xs opacity-60 mt-1">Zmienisz tytuł i treść, a notatka zostanie nadpisana.</p>
+
+            <div className="form-control mt-4">
+              <label className="label py-1">
+                <span className="label-text text-xs font-bold uppercase">Tytuł</span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full font-bold focus:border-secondary focus:ring-1 focus:ring-secondary"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                maxLength={100}
+                disabled={isSavingEdit}
+              />
+            </div>
+
+            <div className="form-control mt-3">
+              <label className="label py-1">
+                <span className="label-text text-xs font-bold uppercase">Treść</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered h-40 leading-relaxed text-base focus:border-secondary focus:ring-1 focus:ring-secondary"
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                disabled={isSavingEdit}
+              />
+            </div>
+
+            <div className="modal-action">
+              <button className="btn" onClick={closeEditNote} disabled={isSavingEdit}>
+                Anuluj
+              </button>
+              <button
+                className={`btn btn-secondary text-white ${isSavingEdit ? "loading" : ""}`}
+                onClick={handleUpdateNote}
+                disabled={!editTitle.trim() || !editContent.trim() || isSavingEdit}
+              >
+                Zapisz zmiany
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop">
+            <button onClick={closeEditNote} disabled={isSavingEdit}>close</button>
+          </div>
+        </div>
+      )}
+
       {/* Formularz dodawania */}
       <div className="card bg-base-100 shadow-xl border-t-4 rounded-t-none border-accent w-full lg:max-w-md">
         <div className="card-body">
@@ -173,34 +264,46 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
           notes.map((note) => (
             <div key={note.id} className="card bg-base-100 shadow-md hover:shadow-lg transition-all duration-300">
               <div className="card-body p-6">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h3 className="card-title text-sm text-secondary mb-1">{note.title}</h3>
-                    <p className="text-xs opacity-50 flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                      </svg>
-                      {note.dateString}
-                    </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3 p-2 rounded-xl bg-base-200/60 border border-base-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold">{note.dateString}</span>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedNotes && selectedNotes.includes(note.id)}
+	                  <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="btn btn-xs btn-outline btn-error btn-square tooltip flex items-center justify-center p-0"
+                        data-tip="Usuń"
+                        aria-label="Usuń notatkę"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M9 3.75A.75.75 0 0 1 9.75 3h4.5a.75.75 0 0 1 .75.75V5.25h4.5a.75.75 0 0 1 0 1.5h-1.06l-1.12 13.44A2.25 2.25 0 0 1 15.08 22H8.92a2.25 2.25 0 0 1-2.24-1.81L5.56 6.75H4.5a.75.75 0 0 1 0-1.5H9V3.75Zm1.5 1.5v0h3v0h-3ZM8.06 6.75l1.1 13.2a.75.75 0 0 0 .75.6h5.18a.75.75 0 0 0 .75-.6l1.1-13.2H8.06Zm2.19 2.25a.75.75 0 0 1 .75.75v8.25a.75.75 0 0 1-1.5 0V9.75a.75.75 0 0 1 .75-.75Zm4.5 0a.75.75 0 0 1 .75.75v8.25a.75.75 0 0 1-1.5 0V9.75a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => openEditNote(note)}
+                        className="btn btn-xs btn-outline btn-secondary btn-square tooltip flex items-center justify-center p-0"
+                        data-tip="Edytuj"
+                        aria-label="Edytuj notatkę"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path d="M16.862 4.487a1.5 1.5 0 0 1 2.12 2.121l-9.9 9.9a4.5 4.5 0 0 1-1.897 1.13l-2.35.783a.75.75 0 0 1-.948-.948l.783-2.35a4.5 4.5 0 0 1 1.13-1.897l9.9-9.9Z" />
+                          <path d="M19.5 8.25 15.75 4.5" />
+                        </svg>
+                      </button>
+	                    <label className="ml-4 flex items-center gap-2 cursor-pointer">
+	                      <input
+	                        type="checkbox"
+	                        checked={selectedNotes && selectedNotes.includes(note.id)}
                         onChange={() => handleSelectNote(note.id)}
-                        className="checkbox checkbox-accent"
+                        className="checkbox checkbox-accent checkbox-sm"
                         aria-label="Dodaj do raportu tygodniowego"
                       />
-                      <span className="text-xs">Dołącz do raportu</span>
+                      <span className="text-xs font-semibold">Dodaj do raportu</span>
                     </label>
-                    <button
-                      onClick={() => handleDeleteNote(note.id)}
-                      className="btn btn-ghost btn-circle btn-xs hover:opacity-100 tooltip tooltip-left"
-                      data-tip="Usuń notatkę"
-                    >✕</button>
+                    
                   </div>
                 </div>
+                <h3 className="card-title text-sm text-secondary mb-1">{note.title}</h3>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-base-content/80">
                   {note.content}
                 </p>
