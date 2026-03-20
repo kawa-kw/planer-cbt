@@ -14,7 +14,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import WeeklyView from "./WeeklyView";
 import qrCodeImage from '../assets/images/cbt-qr-code.png';
+import logoImage from '../assets/images/logo_cbt_small.png';
 import NotesView from "./NotesView";
+import WeeklySummariesOverview from "./WeeklySummariesOverview";
 import { addDaysToIsoDate, parseTimeToMinutes } from "../helpers";
 
 const firebaseConfig = {
@@ -42,6 +44,12 @@ const removePolishAccents = (str) => {
 const AngleIcon = ({ className }) => (
   <svg className={`h-5 w-5 inline-block ml-2 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const ShareIcon = ({ className = "h-5 w-5" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+    <path d="M384 192c53 0 96-43 96-96s-43-96-96-96-96 43-96 96c0 5.4 .5 10.8 1.3 16L159.6 184.1c-16.9-15-39.2-24.1-63.6-24.1-53 0-96 43-96 96s43 96 96 96c24.4 0 46.6-9.1 63.6-24.1L289.3 400c-.9 5.2-1.3 10.5-1.3 16 0 53 43 96 96 96s96-43 96-96-43-96-96-96c-24.4 0-46.6 9.1-63.6 24.1L190.7 272c.9-5.2 1.3-10.5 1.3-16s-.5-10.8-1.3-16l129.7-72.1c16.9 15 39.2 24.1 63.6 24.1z" />
   </svg>
 );
 
@@ -73,6 +81,7 @@ function MainPage() {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [targetUid, setTargetUid] = useState(null);
   const [activeTab, setActiveTab] = useState("daily");
+  const [weeklyViewWeekKey, setWeeklyViewWeekKey] = useState(null);
   const selectedDayName = new Date(selectedDate).toLocaleDateString("pl-PL", { weekday: "long" });
   const todayIso = new Date().toISOString().split("T")[0];
 
@@ -358,10 +367,47 @@ function MainPage() {
 
   return (
     <>
-      <div className="tabs tab-bordered justify-center flex-wrap gap-2 md:gap-4 py-2 px-2">
-        <button className={`tab px-1 ${activeTab === "daily" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
-        <button className={`tab px-1 ${activeTab === "weekly" ? "tab-active font-bold text-secondary" : ""}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
-        {!isReadOnly && <button className={`tab px-1 ${activeTab === 'notes' ? 'tab-active font-bold text-secondary' : ''}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
+      <div className="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1800px] flex-col gap-3 px-3 py-3 md:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6">
+          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
+            <div className="relative flex min-w-0 items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <img src={logoImage} alt="CBT Planer" className="h-10 w-10 shrink-0 object-contain" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold tracking-wide text-primary md:text-base">CBT Planer</div>
+                  <div className="hidden text-xs text-base-content/60 sm:block">Plan dnia, tygodnia i zestawienia</div>
+                </div>
+              </div>
+
+              {isReadOnly ? (
+                <span className="badge badge-warning absolute left-1/2 -translate-x-1/2 lg:hidden">Read only</span>
+              ) : (
+                <button className="btn btn-outline btn-secondary btn-xs px-2 lg:hidden" onClick={copyShareLink} aria-label="Skopiuj share link">
+                  <ShareIcon className="mr-0 h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto lg:justify-self-center">
+            <div className="flex min-w-max items-center justify-center gap-2">
+              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "daily" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
+              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "weekly" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
+              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === 'summaries' ? 'bg-primary text-primary-content hover:bg-primary' : 'text-base-content/70 hover:text-base-content'}`} onClick={() => setActiveTab('summaries')}>Zestawienie</button>
+              {!isReadOnly && <button className={`btn btn-ghost btn-xs normal-case ${activeTab === 'notes' ? 'bg-primary text-primary-content hover:bg-primary' : 'text-base-content/70 hover:text-base-content'}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
+            </div>
+          </div>
+
+          <div className="hidden items-center justify-end gap-2 lg:flex lg:justify-self-end">
+            {isReadOnly && <span className="badge badge-warning hidden sm:inline-flex">Read only</span>}
+            {!isReadOnly && (
+              <button className="btn btn-outline btn-secondary btn-xs px-2 md:px-3" onClick={copyShareLink} aria-label="Skopiuj share link">
+                <ShareIcon className="mr-2 h-4 w-4" />
+                <span className="hidden md:inline">Share Link</span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {activeTab === "daily" && (
@@ -370,9 +416,7 @@ function MainPage() {
             <header className="mb-8 lg:mb-0 text-center relative">
               <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
               <p className="text-base-content/70">Wypełniaj plan na bieżąco lub zaznacz sam stan skupienia.</p>
-              {isReadOnly && <p className="badge badge-warning mt-4">Read only</p>}
               <div className={`relative flex gap-2 flex-wrap justify-end mt-8 -mb-8 z-10 ${isReadOnly ? 'lg:-mb-6' : ''}`}>
-                {!isReadOnly && <button className="btn btn-outline btn-secondary btn-sm" onClick={copyShareLink}>Share Link</button>}
                 <button onClick={exportToPDF} className="btn btn-outline btn-accent btn-sm" disabled={activities.length === 0}>Pobierz PDF z {selectedDate}</button>
               </div>
             </header>
@@ -602,7 +646,8 @@ function MainPage() {
           </div>
         </div>
       )}
-      {activeTab === 'weekly' && <WeeklyView db={db} user={user} targetUid={targetUid} isReadOnly={isReadOnly} initialDate={selectedDate} />}
+      {activeTab === 'weekly' && <WeeklyView db={db} user={user} targetUid={targetUid} isReadOnly={isReadOnly} initialDate={selectedDate} initialWeekKey={weeklyViewWeekKey} />}
+      {activeTab === 'summaries' && <WeeklySummariesOverview db={db} targetUid={targetUid} onNavigateToWeek={(weekKey) => { setWeeklyViewWeekKey(weekKey); setActiveTab('weekly'); }} />}
       {!isReadOnly && activeTab === 'notes' && <NotesView db={db} targetUid={targetUid} isReadOnly={isReadOnly} />}
     </>
   );
