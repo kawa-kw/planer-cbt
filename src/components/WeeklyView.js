@@ -12,11 +12,11 @@ import qrCodeImage from '../assets/images/cbt-qr-code.png';
 
 const DAYS = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
-const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
+const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) => {
   const chartRef = useRef(null);
   const [weeklyData, setWeeklyData] = useState(null);
   const [weeklyActivities, setWeeklyActivities] = useState([]);
-  const [currentWeekKey, setCurrentWeekKey] = useState("");
+  const [currentWeekKey, setCurrentWeekKey] = useState(initialWeekKey || "");
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (initialDate) {
       const day = new Date(initialDate).getDay();
@@ -34,8 +34,8 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate }) => {
   const goToCurrentWeek = () => setCurrentWeekKey(currentWeekIso);
 
   useEffect(() => {
-    if (!currentWeekKey) setCurrentWeekKey(getWeekKey(new Date()));
-  }, [currentWeekKey]);
+    if (!currentWeekKey) setCurrentWeekKey(initialWeekKey || getWeekKey(new Date()));
+  }, [currentWeekKey, initialWeekKey]);
 
   useEffect(() => {
     if (!targetUid || !currentWeekKey) return;

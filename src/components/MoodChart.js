@@ -4,7 +4,7 @@ import {
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-const MoodChart = ({ className, plannedActivities }) => {
+const MoodChart = ({ className, plannedActivities, compact }) => {
   const days = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 
   const calculateAverage = (moodTracker, field) => {
@@ -31,8 +31,8 @@ const MoodChart = ({ className, plannedActivities }) => {
 
   return (
     <div className={className} style={{ width: '100%', height: '100%' }}>
-      <h3 className="text-lg font-bold text-center mb-5 text-base-content/70">Wykres nastroju w trakcie tygodnia (średnia dobowa)</h3>
-      <div className="relative h-[300px] w-full">
+      {!compact && <h3 className="text-lg font-bold text-center mb-5 text-base-content/70">Wykres nastroju w trakcie tygodnia (średnia dobowa)</h3>}
+      <div className={`relative w-full ${compact ? 'h-full' : 'h-[300px]'}`}>
         <span className="badge badge-ghost text-[10px] absolute right-2 top-0">Skala 0-10</span>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
@@ -68,9 +68,11 @@ const MoodChart = ({ className, plannedActivities }) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-[10px] opacity-50 mt-4 italic text-center">
-        Wykres prezentuje uśredniony poziom z trzech pór dnia (Rano, Południe, Wieczór) zgodnie z tabelą monitoringu.
-      </p>
+      {!compact && (
+        <p className="text-[10px] opacity-50 mt-4 italic text-center">
+          Wykres prezentuje uśredniony poziom z trzech pór dnia (Rano, Południe, Wieczór) zgodnie z tabelą monitoringu.
+        </p>
+      )}
     </div>
   );
 };
