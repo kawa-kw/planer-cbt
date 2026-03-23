@@ -16,6 +16,14 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
   const chartRef = useRef(null);
   const [weeklyData, setWeeklyData] = useState(null);
   const [weeklyActivities, setWeeklyActivities] = useState([]);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportSections, setExportSections] = useState({
+    moodChart: true,
+    weeklySummary: true,
+    focusMap: true,
+    notes: true,
+    activityDiary: true,
+  });
   const [currentWeekKey, setCurrentWeekKey] = useState(initialWeekKey || "");
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (initialDate) {
@@ -161,10 +169,10 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
     });
   };
 
-  const exportWeeklyToPDF = async () => {
+  const exportWeeklyToPDF = async (sections = { moodChart: true, weeklySummary: true, focusMap: true, notes: true, activityDiary: true }) => {
     // Generate chart image first
     let chartImageData = null;
-    if (chartRef.current && weeklyData?.plannedActivities) {
+    if (sections.moodChart && chartRef.current && weeklyData?.plannedActivities) {
       try {
         const canvas = await html2canvas(chartRef.current, {
           backgroundColor: '#ffffff',
@@ -236,6 +244,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
     }
 
     // Refleksje i Wnioski pod wykresem (pełna szerokość)
+    if (sections.weeklySummary) {
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "normal");
@@ -260,10 +269,12 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
       doc.text(splitText, 14, currentY);
       currentY += (splitText.length * 4) + 4;
     });
+    } // end weeklySummary
 
     let finalY = currentY + 10;
 
     // --- TYGODNIOWA MAPA SKUPIENIA Z LITERAMI ---
+    if (sections.focusMap) {
     if (finalY > 130) { doc.addPage(); finalY = 20; }
 
     doc.setFontSize(14);
@@ -335,14 +346,17 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
 
     doc.setFillColor(245, 245, 245); doc.rect(88, legendY, 5, 5, 'F'); doc.text("Brak wpisu", 95, legendY + 3.5);
     // ------------------------------------------------------------------
+    finalY = legendY + 20;
+    } // end focusMap
 
     // Wybrane notatki do raportu tygodniowego
+    if (sections.notes) {
     try {
       const selectedNotes = JSON.parse(localStorage.getItem(`selectedNotes_${currentWeekKey}`) || "[]");
       const allNotes = JSON.parse(localStorage.getItem('allNotes') || "[]");
       const notesToExport = allNotes.filter(note => selectedNotes.includes(note.id));
       if (notesToExport.length > 0) {
-        let notesY = legendY + 20;
+        let notesY = finalY;
         doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
         doc.text(removePolishAccents("Notatki/przemyślenia:"), 14, notesY);
@@ -372,7 +386,9 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
         });
       }
     } catch (e) { /* ignore */ }
+    } // end notes
 
+    if (sections.activityDiary) {
     for (let i = 0; i < DAYS.length; i++) {
       const day = DAYS[i];
       doc.addPage();
@@ -537,6 +553,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
         }
       });
     }
+    } // end activityDiary
 
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
@@ -575,7 +592,7 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
       </div>
       <div className="flex justify-end gap-2 mb-4">
         <button
-          onClick={exportWeeklyToPDF}
+          onClick={() => setShowExportDialog(true)}
           className="btn btn-xs md:btn-sm btn-outline btn-accent"
           disabled={!weeklyData}
         >
@@ -665,6 +682,49 @@ const WeeklyView = ({ db, targetUid, isReadOnly, initialDate, initialWeekKey }) 
             isReadOnly={isReadOnly}
           />
         </section>
+      )}
+
+      {showExportDialog && (
+        <div className="modal modal-open">
+          <div className="modal-box rounded-none">
+            <h3 className="font-bold text-lg mb-4">Wybierz sekcje do raportu PDF</h3>
+            <div className="flex flex-col gap-3">
+              {[
+                { key: 'moodChart', label: 'Wykres nastroju' },
+                { key: 'weeklySummary', label: 'Podsumowanie tygodnia (Refleksje i wnioski CBT)' },
+                { key: 'focusMap', label: 'Tygodniowa Mapa Skupienia (ADHD)' },
+                { key: 'notes', label: 'Notatki', sub: 'Wybierz notatki, które chcesz zamieścić' },
+                { key: 'activityDiary', label: 'Dziennik aktywności' },
+              ].map(({ key, label, sub }) => (
+                <label key={key} className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-primary mt-0.5"
+                    checked={exportSections[key]}
+                    onChange={(e) => setExportSections(prev => ({ ...prev, [key]: e.target.checked }))}
+                  />
+                  <div>
+                    <span className="font-medium">{label}</span>
+                    {sub && <p className="text-xs text-base-content/60 mt-0.5">{sub}</p>}
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="modal-action">
+              <button className="btn btn-ghost rounded-none" onClick={() => setShowExportDialog(false)}>Anuluj</button>
+              <button
+                className="btn btn-accent rounded-none"
+                onClick={() => {
+                  setShowExportDialog(false);
+                  exportWeeklyToPDF(exportSections);
+                }}
+              >
+                Eksportuj PDF
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setShowExportDialog(false)} />
+        </div>
       )}
     </div>
   );
