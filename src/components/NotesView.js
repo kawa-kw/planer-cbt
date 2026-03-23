@@ -253,7 +253,7 @@ const NotesView = ({ db, targetUid, isReadOnly }) => {
       </div>
 
       {/* Lista wpisów */}
-      <div className="space-y-4 lg:flex-1">
+      <div className="space-y-4 lg:flex-1 pb-12">
         <h3 className="text-xl font-bold opacity-70 ml-2 border-b pb-2">Historia wpisów <span className="badge badge-accent">{notes.length}</span></h3>
 
         {notes.length === 0 ? (

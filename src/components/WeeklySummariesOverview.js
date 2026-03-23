@@ -344,7 +344,7 @@ const WeeklySummariesOverview = ({ db, targetUid, onNavigateToWeek }) => {
         {orderedSelectedWeeks.length > 0 && (
           <>
             <div className="divider text-base-content/50 text-sm mb-6">Zestawienie wybranych tygodni</div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
               {orderedSelectedWeeks.map((week) => (
                 <div key={week.weekKey} className="card bg-base-100 shadow-md border-t-4 border-primary rounded-none">
                   <div className="card-body p-4">
