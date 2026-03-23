@@ -81,6 +81,7 @@ function MainPage() {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [targetUid, setTargetUid] = useState(null);
   const [activeTab, setActiveTab] = useState("daily");
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [weeklyViewWeekKey, setWeeklyViewWeekKey] = useState(null);
   const selectedDayName = new Date(selectedDate).toLocaleDateString("pl-PL", { weekday: "long" });
   const todayIso = new Date().toISOString().split("T")[0];
@@ -330,6 +331,7 @@ function MainPage() {
   const shareLink = `${window.location.origin}${window.location.pathname}?viewAs=${user?.uid}`;
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
+    setIsMoreMenuOpen(false);
     alert("Link do podglądu skopiowany! Możesz go wysłać osobie trzeciej.");
   };
 
@@ -367,7 +369,7 @@ function MainPage() {
 
   return (
     <>
-      <div className="sticky top-0 z-30 border-b border-base-300 bg-base-100/95 backdrop-blur">
+      <div className="sticky top-0 z-30 hidden border-b border-base-300 bg-base-100/95 backdrop-blur lg:block">
         <div className="mx-auto flex max-w-[1800px] flex-col gap-3 px-3 py-3 md:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6">
           <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
             <div className="relative flex min-w-0 items-center justify-between gap-3">
@@ -383,13 +385,13 @@ function MainPage() {
                 <span className="badge badge-warning absolute left-1/2 -translate-x-1/2 lg:hidden">Read only</span>
               ) : (
                 <button className="btn btn-outline btn-secondary btn-xs px-2 lg:hidden" onClick={copyShareLink} aria-label="Skopiuj share link">
-                  <ShareIcon className="mr-0 h-4 w-4" />
+                  <ShareIcon className="mr-0 h-3 w-3" />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="overflow-x-auto lg:justify-self-center">
+          <div className="hidden overflow-x-auto lg:block lg:justify-self-center">
             <div className="flex min-w-max items-center justify-center gap-2">
               <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "daily" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
               <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "weekly" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
@@ -402,7 +404,7 @@ function MainPage() {
             {isReadOnly && <span className="badge badge-warning hidden sm:inline-flex">Read only</span>}
             {!isReadOnly && (
               <button className="btn btn-outline btn-secondary btn-xs px-2 md:px-3" onClick={copyShareLink} aria-label="Skopiuj share link">
-                <ShareIcon className="mr-2 h-4 w-4" />
+                <ShareIcon className="mr-2 h-3 w-3" />
                 <span className="hidden md:inline">Share Link</span>
               </button>
             )}
@@ -410,8 +412,82 @@ function MainPage() {
         </div>
       </div>
 
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100/95 backdrop-blur py-1 lg:hidden">
+        <div className="relative mx-auto flex justify-around px-1 py-1">
+          <button
+            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'daily' ? 'text-success' : 'text-base-content/70'}`}
+            onClick={() => { setActiveTab('daily'); setIsMoreMenuOpen(false); }}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m4-4H8" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+            <span className="text-[10px] leading-none">Dzień</span>
+          </button>
+
+          <button
+            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'weekly' ? 'text-success' : 'text-base-content/70'}`}
+            onClick={() => { setActiveTab('weekly'); setIsMoreMenuOpen(false); }}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v4m8-4v4M3 10h18" />
+            </svg>
+            <span className="text-[10px] leading-none">Tydzień</span>
+          </button>
+
+          <button
+            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'summaries' ? 'text-success' : 'text-base-content/70'}`}
+            onClick={() => { setActiveTab('summaries'); setIsMoreMenuOpen(false); }}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 19V9m7 10V5m7 14v-7" />
+            </svg>
+            <span className="text-[10px] leading-none">Zestawienie</span>
+          </button>
+
+          <button
+            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'notes' ? 'text-success' : 'text-base-content/70'} ${isReadOnly ? 'opacity-40' : ''}`}
+            onClick={() => { if (!isReadOnly) setActiveTab('notes'); setIsMoreMenuOpen(false); }}
+            disabled={isReadOnly}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10a2 2 0 0 1 2 2v12l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2z" />
+            </svg>
+            <span className="text-[10px] leading-none">Notatki</span>
+          </button>
+
+          <div className="relative flex justify-center">
+            <button
+              className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${isMoreMenuOpen ? 'text-success' : 'text-base-content/70'}`}
+              onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+              aria-expanded={isMoreMenuOpen}
+              aria-label="Więcej"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+              </svg>
+              <span className="text-[10px] leading-none">Więcej</span>
+            </button>
+
+            {isMoreMenuOpen && !isReadOnly && (
+              <div className="absolute bottom-14 right-0 w-40 rounded-box border border-base-300 bg-base-100 p-1 shadow-lg">
+                <button
+                  className="btn btn-ghost btn-sm w-full justify-start normal-case"
+                  onClick={copyShareLink}
+                >
+                  Share link
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {activeTab === "daily" && (
-        <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 md:p-8 overflow-x-hidden">
+        <div className="min-h-[calc(100vh-64px)] bg-base-200 p-4 pb-24 md:p-8 md:pb-8 overflow-x-hidden">
           <div className="max-w-[1800px] mx-auto">
             <header className="mb-8 lg:mb-0 text-center relative">
               <h1 className="text-3xl font-bold text-primary mb-2">Dzienny plan aktywności – CBT</h1>
@@ -599,7 +675,7 @@ function MainPage() {
 
                 {/* Mapa Skupienia bierze wszystkie wpisy z bazy (też te bez aktywności) */}
                 {activities.length > 0 && (
-                  <div className="card bg-base-100 shadow-xl p-6 mt-8 border-t-4 rounded-t-none border-primary">
+                  <div className="card bg-base-100 shadow-xl p-6 mt-8 border-t-4 rounded-t-none border-primary mb-12">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                       Mapa Skupienia (ADHD)
