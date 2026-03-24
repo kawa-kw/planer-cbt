@@ -18,6 +18,7 @@ import logoImage from '../assets/images/logo_cbt_small.png';
 import NotesView from "./NotesView";
 import WeeklySummariesOverview from "./WeeklySummariesOverview";
 import { addDaysToIsoDate, parseTimeToMinutes } from "../helpers";
+import activityAddIcon from '../assets/images/activity_add.svg';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAWvWHUoQhdeL7PicXgMwOTRfSWVrVm9I",
@@ -393,8 +394,8 @@ function MainPage() {
 
           <div className="hidden overflow-x-auto lg:block lg:justify-self-center">
             <div className="flex min-w-max items-center justify-center gap-2">
-              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "daily" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("daily")}>Widok Dzienny</button>
-              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "weekly" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("weekly")}>Widok Tygodniowy</button>
+              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "daily" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("daily")}>Aktywność</button>
+              <button className={`btn btn-ghost btn-xs normal-case ${activeTab === "weekly" ? "bg-primary text-primary-content hover:bg-primary" : "text-base-content/70 hover:text-base-content"}`} onClick={() => setActiveTab("weekly")}>Tydzień</button>
               <button className={`btn btn-ghost btn-xs normal-case ${activeTab === 'summaries' ? 'bg-primary text-primary-content hover:bg-primary' : 'text-base-content/70 hover:text-base-content'}`} onClick={() => setActiveTab('summaries')}>Zestawienie</button>
               {!isReadOnly && <button className={`btn btn-ghost btn-xs normal-case ${activeTab === 'notes' ? 'bg-primary text-primary-content hover:bg-primary' : 'text-base-content/70 hover:text-base-content'}`} onClick={() => setActiveTab('notes')}>Notatki</button>}
             </div>
@@ -437,14 +438,11 @@ function MainPage() {
           </button>
 
           <button
-            className={`relative  btn btn-ghost btn-sm h-auto min-h-0 flex-col justify-end gap-1 p-2 hover:bg-white ${activeTab === 'daily' ? 'text-success' : 'text-base-content/70'}`}
+            className={`relative  btn btn-ghost btn-sm h-[60px] min-h-0 flex-col gap-1 p-2 hover:bg-white ${activeTab === 'daily' ? 'text-success' : 'text-base-content/70'}`}
             onClick={() => { setActiveTab('daily'); setIsMoreMenuOpen(false); }}
           >
-            <svg className="h-12 w-12 absolute -top-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m4-4H8" />
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-            <span className="text-[10px]">Aktywność</span>
+            <img className="absolute -top-4" src={activityAddIcon} alt="Dodaj aktywność" />
+            <span className="sr-only">Dodaj aktywność</span>
           </button>
           <button
             className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-1 p-2 ${activeTab === 'summaries' ? 'text-success' : 'text-base-content/70'}`}
