@@ -413,39 +413,7 @@ function MainPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100/95 backdrop-blur py-1 lg:hidden">
-        <div className="relative mx-auto flex justify-around px-1 py-1">
-          <button
-            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'daily' ? 'text-success' : 'text-base-content/70'}`}
-            onClick={() => { setActiveTab('daily'); setIsMoreMenuOpen(false); }}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m4-4H8" />
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-            <span className="text-[10px] leading-none">Dzień</span>
-          </button>
-
-          <button
-            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'weekly' ? 'text-success' : 'text-base-content/70'}`}
-            onClick={() => { setActiveTab('weekly'); setIsMoreMenuOpen(false); }}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="16" rx="2" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v4m8-4v4M3 10h18" />
-            </svg>
-            <span className="text-[10px] leading-none">Tydzień</span>
-          </button>
-
-          <button
-            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'summaries' ? 'text-success' : 'text-base-content/70'}`}
-            onClick={() => { setActiveTab('summaries'); setIsMoreMenuOpen(false); }}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 19V9m7 10V5m7 14v-7" />
-            </svg>
-            <span className="text-[10px] leading-none">Zestawienie</span>
-          </button>
-
+        <div className="relative mx-auto grid grid-cols-5 px-1 py-1">
           <button
             className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${activeTab === 'notes' ? 'text-success' : 'text-base-content/70'} ${isReadOnly ? 'opacity-40' : ''}`}
             onClick={() => { if (!isReadOnly) setActiveTab('notes'); setIsMoreMenuOpen(false); }}
@@ -454,12 +422,44 @@ function MainPage() {
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 4h10a2 2 0 0 1 2 2v12l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2z" />
             </svg>
-            <span className="text-[10px] leading-none">Notatki</span>
+            <span className="text-[10px]">Notatki</span>
           </button>
+
+          <button
+            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-1 p-2 ${activeTab === 'weekly' ? 'text-success' : 'text-base-content/70'}`}
+            onClick={() => { setActiveTab('weekly'); setIsMoreMenuOpen(false); }}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v4m8-4v4M3 10h18" />
+            </svg>
+            <span className="text-[10px]">Tydzień</span>
+          </button>
+
+          <button
+            className={`relative  btn btn-ghost btn-sm h-auto min-h-0 flex-col justify-end gap-1 p-2 hover:bg-white ${activeTab === 'daily' ? 'text-success' : 'text-base-content/70'}`}
+            onClick={() => { setActiveTab('daily'); setIsMoreMenuOpen(false); }}
+          >
+            <svg className="h-12 w-12 absolute -top-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m4-4H8" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+            <span className="text-[10px]">Aktywność</span>
+          </button>
+          <button
+            className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-1 p-2 ${activeTab === 'summaries' ? 'text-success' : 'text-base-content/70'}`}
+            onClick={() => { setActiveTab('summaries'); setIsMoreMenuOpen(false); }}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 19V9m7 10V5m7 14v-7" />
+            </svg>
+            <span className="text-[10px]">Zestawienie</span>
+          </button>
+          
 
           <div className="relative flex justify-center">
             <button
-              className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-2 p-2 ${isMoreMenuOpen ? 'text-success' : 'text-base-content/70'}`}
+              className={`btn btn-ghost btn-sm h-auto min-h-0 flex-col gap-1 p-2 ${isMoreMenuOpen ? 'text-success' : 'text-base-content/70'}`}
               onClick={() => setIsMoreMenuOpen((prev) => !prev)}
               aria-expanded={isMoreMenuOpen}
               aria-label="Więcej"
@@ -469,7 +469,7 @@ function MainPage() {
                 <circle cx="12" cy="12" r="2" />
                 <circle cx="19" cy="12" r="2" />
               </svg>
-              <span className="text-[10px] leading-none">Więcej</span>
+              <span className="text-[10px]">Więcej</span>
             </button>
 
             {isMoreMenuOpen && !isReadOnly && (
